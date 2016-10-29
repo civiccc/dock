@@ -50,13 +50,13 @@ bin/dock # If you have installed Dock then you can just run `dock`
 ```
 
 After running `dock` inside the Dock repository, you should be running inside
-a Docker container. Your current directory will be `/repo` inside that
+a Docker container. Your current directory will be `/workspace` inside that
 container, and the contents of that directory will be the Dock repository
 itself (i.e. the current project).
 
 ```
 $ pwd
-/repo
+/workspace
 $ ls
 Dockerfile LICENSE.md README.md ...
 ```
@@ -285,7 +285,7 @@ volume "${repo_root}/script/my-script:/usr/bin/my-script"
 #### `workspace_path`
 
 Define the path in the container that the repository will be mounted at.
-Default is `/repo`.
+Default is `/workspace`.
 
 ```bash
 workspace_path /my-custom-dir
