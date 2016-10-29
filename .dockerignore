@@ -1,0 +1,5 @@
+# Exclude all files from the Docker build context by default.
+# This speeds up the start time of any `dock` command.
+#
+# Whitelist files/patterns for inclusion by prepending "!" to them.
+*

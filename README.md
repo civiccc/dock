@@ -46,13 +46,13 @@ it works.
 ```bash
 git clone git://github.com/brigade/dock
 cd dock
-dock
+bin/dock # If you have installed Dock then you can just run `dock`
 ```
 
 After running `dock` inside the Dock repository, you should be running inside
 a Docker container. Your current directory will be `/repo` inside that
 container, and the contents of that directory will be the Dock repository
-itself.
+itself (i.e. the current project).
 
 ```
 $ pwd
@@ -64,7 +64,7 @@ Dockerfile LICENSE.md README.md ...
 Any changes you make to these files will automatically be reflected in the
 original repository, and vice versa. This allows you to continue using your
 favorite tools and editors to make changes to your project, but actually
-run code or tests _inside_ the container so it is isolated from the rest of
+run code or tests _inside_ the container to isolate these from the rest of
 your system.
 
 ## Usage

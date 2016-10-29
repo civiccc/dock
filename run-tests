@@ -1,0 +1,41 @@
+#!/bin/bash
+#
+# Runs all tests.
+#
+# Specify a path to run only that test file.
+
+start_docker() {
+  # Don't do anything if daemon already running
+  if docker info >/dev/null 2>&1; then
+    return
+  fi
+
+  sudo dockerd >/dev/null 2>&1 &
+  dockerd_pid=$!
+
+  local max_tries=5
+  for i in {1..5}; do
+    if docker info >/dev/null 2>&1; then
+      break
+    fi
+    echo "Waiting for Docker daemon to start ($i/5)..." >&2
+    sleep 1
+  done
+
+  if ! docker info >/dev/null 2>&1; then
+    echo "Docker daemon failed to start!" >&2
+    return 1
+  fi
+}
+
+stop_docker() {
+  echo "Shutting down Docker daemon..." >&2
+  sudo kill $dockerd_pid 2>&1 >/dev/null || true
+  wait $dockerd_pid
+}
+
+trap "stop_docker" EXIT INT QUIT TERM
+start_docker
+unset INSIDE_DOCK
+
+bats "$@"
