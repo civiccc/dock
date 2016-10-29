@@ -21,3 +21,12 @@ destroy-all-containers() {
 container-running() {
   [ "$(docker inspect --format={{.State.Status}} "$1")" = running ]
 }
+
+file() {
+  local file=$1
+
+  # `file` will be passed file contents via STDIN
+  while read data; do
+    echo "$data" >> "$file"
+  done
+}
