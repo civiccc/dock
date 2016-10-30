@@ -40,11 +40,11 @@ It will ask for your sudo password only if necessary.
 
 ### Docker for Mac
 
-If you are using Docker for Mac, you need to add `/usr/local/bin` to the list
-of mountable directories. This allows Dock to mount itself within the
-container so you can recursively execute scripts with Dock shebang lines
-without creating nested Dock containers. You can add the path via
-**Preferences** -> **File Sharing**:
+If you are using [Docker for Mac](https://docs.docker.com/docker-for-mac/),
+you need to add `/usr/local/bin` to the list of mountable directories. This
+allows Dock to mount itself within the container so you can recursively execute
+scripts with Dock shebang lines without creating nested Dock containers. You
+can add the path via **Preferences** -> **File Sharing**:
 
 <p align="center">
   <img src="https://raw.githubusercontent.com/brigade/dock/master/doc/img/docker-for-mac-file-sharing.png" width="50%" alt="Docker for Mac File Sharing" />
