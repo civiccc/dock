@@ -3,7 +3,7 @@
 load ../utils
 
 setup() {
-  destroy-all-containers
+  destroy_all_containers
   original_dir="$(pwd)"
   actual_repo_path="$(create_repo)"
   cd "${actual_repo_path}"

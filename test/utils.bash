@@ -14,11 +14,11 @@ create_repo() {
   echo ${repo_path}
 }
 
-destroy-all-containers() {
+destroy_all_containers() {
   docker ps -aq | xargs --no-run-if-empty docker rm --force
 }
 
-container-running() {
+container_running() {
   [ "$(docker inspect --format={{.State.Status}} "$1")" = running ]
 }
 

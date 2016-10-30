@@ -5,7 +5,7 @@ load ../utils
 project_name=my-project
 
 setup() {
-  destroy-all-containers
+  destroy_all_containers
   original_dir="$(pwd)"
   cd "$(create_repo ${project_name})"
   echo "image=alpine:latest" > .dock
@@ -19,5 +19,5 @@ teardown() {
   container_id="$(dock -d sh)"
   run dock -f echo
   [ "$status" -eq 0 ]
-  ! container-running "$container_id"
+  ! container_running "$container_id"
 }

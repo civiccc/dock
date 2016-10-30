@@ -3,7 +3,7 @@
 load ../utils
 
 setup() {
-  destroy-all-containers
+  destroy_all_containers
   original_dir="$(pwd)"
   cd "$(create_repo)"
   file .dock <<-EOF

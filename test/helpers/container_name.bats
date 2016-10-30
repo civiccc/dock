@@ -5,7 +5,7 @@ load ../utils
 project_name=my-project
 
 setup() {
-  destroy-all-containers
+  destroy_all_containers
   original_dir="$(pwd)"
   cd "$(create_repo ${project_name})"
 }

@@ -5,7 +5,7 @@ load ../utils
 project_name=my-project
 
 setup() {
-  destroy-all-containers
+  destroy_all_containers
   original_dir="$(pwd)"
   cd "$(create_repo ${project_name})"
   echo "image=alpine:latest" > .dock
@@ -18,5 +18,5 @@ teardown() {
 @test "running Dock container as detached" {
   run dock -d sh
   [ "$status" -eq 0 ]
-  container-running "${project_name}-dock"
+  container_running "${project_name}-dock"
 }
