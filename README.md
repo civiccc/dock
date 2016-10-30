@@ -6,6 +6,10 @@ environments inside [Docker](https://www.docker.com/) containers.
 * [Installation](#installation)
 * [Getting Started](#getting-started)
 * [Usage](#usage)
+  * [Attach to an already-running container](#attach-to-an-already-running-container)
+  * [Run a container in the background](#run-a-container-in-the-background)
+  * [Automatically execute a script in a Dock container](#automatically-execute-a-script-in-a-dock-container)
+  * [Expose services inside the container on your host](#expose-services-inside-the-container-on-your-host)
 * [Configuration](#configuration)
   * [Options](#options)
   * [Helpers](#helpers)
@@ -107,23 +111,94 @@ Option                 | Description
 `-d`                   | Detach/daemonize (run resulting Dock container in the background)
 `-f`                   | Force creation of new container (destroying old one if it exists)
 
-### Opening multiple shells in a container
+### Attach to an already-running container
 
 Dock is intended to make it easy to manage a _single_ development environment
 for a repository, like you would any virtual machine. Thus it *explicitly
 prevents* you from running `dock` multiple times in the same project to run
-multiple containers for that project.
+multiple containers for that single project (if you must, you can get around
+this by cloning the project into separate directories with different names so
+they are assigned different container names by default).
 
 You can however open multiple shells to the same container by attaching to an
-already-running Dock container with `dock -a`.
+already-running Dock container by running `dock -a` in the project directory.
 
-### Running a container in the background
+### Run a container in the background
 
 If you want to have Dock start up isolated services and don't require an active
 shell session inside the container, you can start the container in detached
 mode.
 
 Run `dock -d` or specify `detach true` in your Dock configuration.
+
+### Automatically execute a script in a Dock container
+
+By adding a correct [shebang line](https://en.wikipedia.org/wiki/Shebang_(Unix))
+to your script, you can have the script automatically run inside a Dock container.
+
+```bash
+#!/usr/local/bin/dock bash
+echo We are in a container!
+```
+
+If you run this in a project with a valid Dock configuration file, the script
+will invoke Dock which will start a container using the image defined by the
+configuration execute the script using whatever command you passed as the second
+argument (`bash` in this case).
+
+**WARNING**: Never specify more than one argument to the shebang line. Different
+operating systems have different restrictions on shebangs. While some allow you
+to specify as many as you want, Linux in particular will treat all arguments
+after the executable as a single argument. For example, the following code:
+
+```bash
+#!/usr/local/bin/dock bash -c 'some command'
+...
+```
+
+...will treat the shebang line as `/usr/local/bin/dock "bash -c 'some command'"`
+(i.e. treating `bash -c 'some command'` as a single argument), which will fail
+since there is no such file.
+
+If you need to execute a script with a complicated set of arguments, create
+a wrapper script:
+
+```bash
+#!/usr/local/bin/dock script/my-wrapper-script
+...
+```
+
+The wrapper script will be passed the path to the script file as a single
+argument. It is up to you to write the script to know how to handle/execute
+the file it is given.
+
+### Expose services inside the container on your host
+
+While an important feature offered by Dock is isolating your development
+environments from each other (e.g. so that services listening on the same
+port don't conflict), it is convenient to be able to expose these ports on
+your host so you can easily interact with them using tools installed on
+your host.
+
+You can expose/publish a port using the `publish` command in your
+configuration:
+
+```bash
+publish 3306:3306 # Expose MySQL on the same port on the host
+```
+
+Where this differs from the `--publish` flag of `docker run` is that if the
+port is already taken by another process on your machine (e.g. another Dock
+container for a different project) you'll still be able to start the
+container. You'll see a warning letting you know that the port could not
+be exposed.
+
+If you really need to expose the service for a given project, stop the
+container for the other project so it releases the port, start the project
+whose service you want to expose, and then start back up your other project.
+
+Alternatively, you can decide to expose the services to different ports on
+the host so they don't conflict.
 
 ## Configuration
 
