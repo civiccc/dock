@@ -393,10 +393,13 @@ volume "$(container_name)_docker:/var/lib/docker"
 ```
 
 * [`ask`](#ask)
+* [`detach`](#detach)
 * [`group_id`](#group_id)
+* [`hostname`](#hostname)
 * [`interactive`](#interactive)
 * [`linux`](#linux)
 * [`mac_os`](#mac_os)
+* [`privileged`](#privileged)
 * [`repo_path`](#repo_path)
 * [`user_id`](#user_id)
 * [`workspace_path`](#workspace_path)
@@ -416,9 +419,19 @@ ask "Are you sure? (y/n)" n variable_to_store_answer_in
 
 Outputs the name of the Docker container that Dock will create.
 
+#### `detach`
+
+Returns whether container will be detached on startup.
+
+Returns zero exit status (success) if yes.
+
 #### `group_id`
 
 Group ID of the user that ran the Dock command.
+
+#### `hostname`
+
+Outputs the hostname that will be assigned to the container.
 
 #### `interactive`
 
@@ -436,6 +449,12 @@ Returns zero exit status (success) if yes.
 #### `mac_os`
 
 Whether the host is running macOS.
+
+Returns zero exit status (success) if yes.
+
+#### `privileged`
+
+Returns whether the container will be started with extended privileges.
 
 Returns zero exit status (success) if yes.
 
