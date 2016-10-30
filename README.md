@@ -66,9 +66,11 @@ bin/dock # If you have installed Dock then you can just run `dock`
 ```
 
 After running `dock` inside the Dock repository, you should be running inside
-a Docker container. Your current directory will be `/workspace` inside that
-container, and the contents of that directory will be the Dock repository
-itself (i.e. the current project).
+a Docker container. The environment will look and feel like CentOS 7 because
+it is based off of that image (see the corresponding [Dockerfile](Dockerfile)).
+Your current directory will be `/workspace` inside that container, and the
+contents of that directory will be the Dock repository itself (i.e. the current
+project).
 
 ```
 $ pwd
