@@ -1,8 +1,9 @@
 #!/bin/bash
-#
-# Runs all tests.
-#
-# Specify a path to run only that test file.
+
+# Entrypoint script that starts a Docker daemon inside the Dock container
+# for us so that it is always available.
+
+set -euo pipefail
 
 start_docker() {
   # Don't do anything if daemon already running
@@ -28,14 +29,5 @@ start_docker() {
   fi
 }
 
-stop_docker() {
-  echo "Shutting down Docker daemon..." >&2
-  sudo kill $dockerd_pid 2>&1 >/dev/null || true
-  wait $dockerd_pid
-}
-
-trap "stop_docker" EXIT INT QUIT TERM
 start_docker
-unset INSIDE_DOCK
-
-bats "$@"
+exec "$@"

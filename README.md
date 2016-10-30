@@ -38,10 +38,21 @@ curl https://raw.githubusercontent.com/brigade/dock/master/script/install-dock |
 
 It will ask for your sudo password only if necessary.
 
+### Docker for Mac
+
+If you are using Docker for Mac, you need to add `/usr/local/bin` to the list
+of mountable directories. This allows Dock to mount itself within the
+container so you can recursively execute scripts with Dock shebang lines
+without created nested Dock containers.
+
 ## Getting Started
 
 You can try out Dock against the Dock repository itself to get a feel for how
 it works.
+
+**WARNING**: This will start a privileged container on your machine (in order to
+start a Docker daemon within the container, it needs extended privileges).
+Proceed at your own risk.
 
 ```bash
 git clone git://github.com/brigade/dock
@@ -77,8 +88,10 @@ cd path/to/repo
 dock [options] [command...]
 ```
 
-If no command is given, Dock will execute the default `command` defined in your
-Dock configuration file, or otherwise error telling you no command was given.
+If no command is given, Dock will execute the `default_command` defined in your
+Dock configuration file. If no `default_command` is specified, the
+`ENTRYPOINT`/`CMD` directives defined in the Dockerfile that created the image
+Dock is running will dictate which command will be executed.
 
 Option                 | Description
 -----------------------|-------------------------------------------------------
@@ -91,7 +104,8 @@ Option                 | Description
 
 Dock is intended to make it easy to manage a _single_ development environment
 for a repository, like you would any virtual machine. Thus it *explicitly
-prevents* you from running `dock` multiple times to run multiple containers.
+prevents* you from running `dock` multiple times in the same project to run
+multiple containers for that project.
 
 You can however open multiple shells to the same container by attaching to an
 already-running Dock container with `dock -a`.
@@ -118,7 +132,9 @@ These configuration options can be set in your Dock configuration file.
 * [`container_name`](#container_name)
 * [`default_command`](#default_command)
 * [`detach`](#detach)
+* [`detach_keys`](#detach_keys)
 * [`dockerfile`](#dockerfile)
+* [`dock_in_dock`](#dock_in_dock)
 * [`env_var`](#env_var)
 * [`image`](#image)
 * [`optional_env`](#optional_env)
@@ -136,6 +152,15 @@ is just `bash`.
 
 ```bash
 attach_command gosu app_user
+```
+
+**WARNING**: You must split the command into individual arguments in order for
+them to be executed correctly. This means if you have a single argument with
+whitespace you'll need to wrap it in quotes or escape it:
+
+```bash
+attach_command echo "This is a single argument"
+attach_command echo These are multiple separate arguments
 ```
 
 #### `container_name`
@@ -161,6 +186,15 @@ knows nothing about your repository can simply run `dock` to get started.
 default_command script/start-services
 ```
 
+**WARNING**: You must split the command into individual arguments in order for
+them to be executed correctly. This means if you have a single argument with
+whitespace you'll need to wrap it in quotes or escape it:
+
+```bash
+default_command echo "This is a single argument"
+default_command echo These are multiple separate arguments
+```
+
 #### `detach`
 
 Specifies whether the Dock container should run in the background (e.g. the
@@ -172,6 +206,18 @@ You can re-attach to a detached Dock container by running `dock -a`.
 detach true
 ```
 
+#### `detach_keys`
+
+Specifies the key sequence to detach from the container.
+
+Dock changes this sequence from the default `ctrl-p,p` to `ctrl-x,x`. This
+makes the `ctrl-p` readline shortcut for cycling through previous commands
+work as expected without needing to type `ctrl-p` twice, which is useful
+when you are running a shell in the container.
+
+This is almost certainly what you want, but `detach_keys` is available if you
+want to change it to some other sequence.
+
 #### `dockerfile`
 
 Specify path to the Dockerfile to build into an image used by the Dock
@@ -182,6 +228,18 @@ Cannot specify `dockerfile` and `image` options in the same configuration.
 
 ```bash
 dockerfile Dockerfile
+```
+
+#### `dock_in_dock`
+
+Specify whether to allow Dock to created containers within a Dock container.
+Default is `false`, and this is almost always what you want.
+
+The Dock project itself needs to test the creation of Dock containers within
+a Dock container, so it enables this feature.
+
+```bash
+dock_in_dock true
 ```
 
 #### `env_var`
@@ -296,8 +354,8 @@ workspace_path /my-custom-dir
 Dock defines a number of helper functions which may be useful when writing your
 configuration file.
 
-*WARNING*: Bash variables and functions are referenced differently. Since these
-helpers are all functions, always use `$(...)` to include the output of a
+**WARNING**: Bash variables and functions are referenced differently. Since
+these helpers are all functions, always use `$(...)` to include the output of a
 function in a string, e.g.:
 
 ```bash

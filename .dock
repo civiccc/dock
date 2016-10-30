@@ -1,0 +1,26 @@
+# Loaded by Dock when any `dock` command is executed in this repository.
+
+# Create development container using image built from this Dockerfile
+dockerfile Dockerfile
+
+# Allow Dock containers to be created within this Dock container, since we
+# explicitly want to test that!
+dock_in_dock true
+
+# Running a Docker daemon inside the container requires additional privileges
+privileged true
+
+entrypoint script/entrypoint.bash
+
+# We want to mount the repo's local Dock executable instead of the global one a
+# user may have installed.
+volume "${repo_root}/bin/dock:/usr/local/bin/dock"
+
+# Ensure all the temporary files we create during test runs use the host file
+# system (for performance) and are destroyed between runs.
+volume "/tmp"
+
+# Preserve Docker layer cache between runs
+volume "${container_name}_docker:/var/lib/docker"
+
+default_command bash
