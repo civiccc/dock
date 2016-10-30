@@ -241,7 +241,7 @@ dockerfile Dockerfile
 
 #### `dock_in_dock`
 
-Specify whether to allow Dock to created containers within a Dock container.
+Specify whether to allow Dock to create containers within a Dock container.
 Default is `false`, and this is almost always what you want.
 
 The Dock project itself needs to test the creation of Dock containers within
