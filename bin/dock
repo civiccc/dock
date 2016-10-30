@@ -171,6 +171,20 @@ entrypoint() {
   fi
 }
 
+hostname() {
+  if [ -z "${1+x}" ]; then
+    # No argument specified, so return the current name
+    echo "${container_hostname:-$container_name}"
+  else
+    # Otherwise set the current name
+    if [ -z "$1" ]; then
+      error "Cannot specify an empty name for hostname!"
+      return 1
+    fi
+    container_hostname="$1"
+  fi
+}
+
 image() {
   if [ -z "${1+x}" ]; then
     error "Must provide image name as argument!"
@@ -600,8 +614,12 @@ if [ ${#required_env[@]} -gt 0 ]; then
   done
 fi
 
+if [ -z "${container_hostname+x}" ]; then
+  container_hostname="$container_name"
+fi
+
 run_args+=("--name" "$container_name")
-run_args+=("--hostname" "$container_name")
+run_args+=("--hostname" "$container_hostname")
 run_args+=("--workdir" "$workspace_dir")
 run_args+=("--detach-keys" "$detach_keys")
 

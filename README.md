@@ -136,6 +136,7 @@ These configuration options can be set in your Dock configuration file.
 * [`dockerfile`](#dockerfile)
 * [`dock_in_dock`](#dock_in_dock)
 * [`env_var`](#env_var)
+* [`hostname`](#hostname)
 * [`image`](#image)
 * [`optional_env_var`](#optional_env_var)
 * [`privileged`](#privileged)
@@ -250,6 +251,14 @@ container.
 
 ```bash
 env_var MY_ENV_VAR "my value"
+```
+
+#### `hostname`
+
+Specifies the hostname for the container. Defaults to the container name.
+
+```bash
+hostname "$(container_name).test.com"
 ```
 
 #### `image`
