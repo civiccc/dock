@@ -1,7 +1,7 @@
 # Dock
 
-`dock` is a tool for defining, building, and running development environments
-inside [Docker](https://www.docker.com/) containers.
+`dock` is a tool for defining, building, and running self-contained development
+environments inside [Docker](https://www.docker.com/) containers.
 
 * [Installation](#installation)
 * [Getting Started](#getting-started)
@@ -137,11 +137,12 @@ These configuration options can be set in your Dock configuration file.
 * [`dock_in_dock`](#dock_in_dock)
 * [`env_var`](#env_var)
 * [`image`](#image)
-* [`optional_env`](#optional_env)
+* [`optional_env_var`](#optional_env_var)
 * [`privileged`](#privileged)
 * [`publish`](#publish)
 * [`pull_latest`](#pull_latest)
-* [`required_env`](#required_env)
+* [`required_env_var`](#required_env_var)
+* [`run_args`](#run_args)
 * [`volume`](#volume)
 * [`workspace_path`](#workspace_path)
 
@@ -316,6 +317,19 @@ If not defined, Dock will halt with an error message.
 
 ```bash
 required_env_var MY_REQUIRED_ENV_VAR
+```
+
+#### `run_args`
+
+Specify additional arguments for the `docker run` command that Dock will
+execute.
+
+Most common flags are configured via the various options allowed in the Dock
+configuration, e.g. `env_var`, `volume`, etc. However, for special cases
+this is provided to allow you to specify additional flags.
+
+```bash
+run_args --cpu-shares 1024
 ```
 
 #### `volume`

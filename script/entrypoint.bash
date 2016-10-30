@@ -19,7 +19,7 @@ start_docker() {
     if docker info >/dev/null 2>&1; then
       break
     fi
-    echo "Waiting for Docker daemon to start ($i/5)..." >&2
+    echo "Waiting for Docker daemon to start..." >&2
     sleep 1
   done
 

@@ -10,6 +10,7 @@ dock_in_dock true
 # Running a Docker daemon inside the container requires additional privileges
 privileged true
 
+# Execute this script with the original command arguments passed to it
 entrypoint script/entrypoint.bash
 
 # We want to mount the repo's local Dock executable instead of the global one a

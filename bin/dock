@@ -1,0 +1,682 @@
+#!/bin/bash
+
+# USAGE DOCUMENTATION
+# `dock` is a tool for defining, building, and running self-contained
+# development environments inside Docker containers.
+#
+# Usage: dock [options] [command]
+# -a                    Attach to already-running container
+#
+# -c config-file        Configuration file to use (default is .dock)
+#
+# -d                    Detach and run container in the background
+#
+# -f                    Force creation of new container (destroying any
+#                       already-existing container).
+# END USAGE DOCUMENTATION
+
+set -euo pipefail
+
+# We want all output to go to STDERR so that STDOUT receives output from the
+# original command. This makes shebang Dock scripts more useful as they will
+# appear to act exactly like the original script (if you ignore STDERR).
+redirect_stdout() {
+  exec 5<&1
+  exec 1>&2
+}
+redirect_stdout
+
+restore_stdout() {
+  exec 1>&5
+}
+
+default_conf_file=".dock"
+
+# We use \033 instead of \e since Macs don't support \e as of Mountain Lion
+red="\033[0;31m"
+green="\033[0;32m"
+yellow="\033[0;33m"
+cyan="\033[0;36m"
+reset="\033[0m"
+
+error() {
+  if interactive; then
+    echo -en "${red}ERROR${reset}: "
+  else
+    echo -n "ERROR: "
+  fi
+  echo "$@"
+}
+
+warn() {
+  if interactive; then
+    echo -en "${yellow}WARN${reset}: "
+  else
+    echo -n "WARN: "
+  fi
+  echo "$@"
+}
+
+notice() {
+  if interactive; then
+    echo -e "${cyan}$@${reset}"
+  else
+    echo "$@"
+  fi
+}
+
+success() {
+  if interactive; then
+    echo -e "${green}$@${reset}"
+  else
+    echo "$@"
+  fi
+}
+
+in_path() {
+  [ "$(type -t "$1")" = file ] && command -v "$1" >/dev/null 2>&1
+}
+
+display_usage() {
+  # TODO: read documentation at top of file
+  echo
+}
+
+ask() {
+  local question="$1"
+  local default="$2"
+  local var_name="$3"
+  if interactive; then
+    echo -en "${cyan}${question}${reset} [$default] "
+    read $var_name
+    [ -z "${!var_name}" ] && eval $var_name="$default" || true
+  else
+    eval $var_name="$default"
+  fi
+}
+
+group_id() {
+  id -g
+}
+
+user_id() {
+  id -u
+}
+
+attach_command() {
+  if [ "${#@}" -eq 0 ]; then
+    error "Must specify at least one argument for attach command!"
+    return 1
+  else
+    attach_command_args=("${@}")
+  fi
+}
+
+container_name() {
+  if [ -z "${1+x}" ]; then
+    # No argument specified, so return the current name
+    echo "${container_name}"
+  else
+    # Otherwise set the current name
+    if [ -z "$1" ]; then
+      error "Cannot specify an empty name for container!"
+      return 1
+    fi
+    container_name="$1"
+  fi
+}
+
+default_command() {
+  if [ "${#@}" -eq 0 ]; then
+    error "Must specify at least one argument for default command!"
+    return 1
+  else
+    command_args=("${@}")
+  fi
+}
+
+detach_keys() {
+  if [ -z "${1+x}" ]; then
+    error "Must provide key sequence as argument!"
+    return 1
+  else
+    detach_keys="$1"
+  fi
+}
+
+dockerfile() {
+  if [ -z "${1+x}" ]; then
+    error "Must provide path to Dockerfile as argument!"
+    return 1
+  else
+    dockerfile="$1"
+  fi
+}
+
+dock_in_dock() {
+  if [ -z "${1+x}" ]; then
+    error "Must provide true/false as argument to dock_in_dock!"
+    return 1
+  else
+    dock_in_dock="$1"
+  fi
+}
+
+entrypoint() {
+  if [ -z "${1+x}" ]; then
+    error "Must provide path to entrypoint executable as argument!"
+    return 1
+  else
+    entrypoint="$1"
+  fi
+}
+
+image() {
+  if [ -z "${1+x}" ]; then
+    error "Must provide image name as argument!"
+    return 1
+  else
+    image="$1"
+  fi
+}
+
+pull_latest() {
+  if [ -z "${1+x}" ] || "$1"; then
+    pull=true
+  else
+    pull=false
+  fi
+}
+
+osx() {
+  [ "$(uname)" = Darwin ]
+}
+
+linux() {
+  [ "$(uname)" = Linux ]
+}
+
+ci() {
+  [ -n "${CI+x}" ] && [ "$CI" = 1 -o "$CI" = true ]
+}
+
+interactive() {
+  [ -t 0 ]
+}
+
+repo_path() {
+  echo "${repo_root}"
+}
+
+detach() {
+  # If called without any arguments, assume "true"
+  if [ -z "${1+x}" ] || $1; then
+    detach=true
+  else
+    detach=false
+  fi
+}
+
+env_var() {
+  if [ -z "${1+x}" ]; then
+    error "Must provide name and value for environment variable!"
+    return 1
+  elif [ -z "${2+x}" ]; then
+    error "Must provide value for environment variable $1!"
+    return 1
+  else
+    env+=("$1=$2")
+  fi
+}
+
+optional_env_var() {
+  if [ -z "${1+x}" ]; then
+    error "Must provide name of optional environment variable!"
+    return 1
+  else
+    optional_env+=("$1")
+  fi
+}
+
+privileged() {
+  if [ -z "${1+x}" ]; then
+    # If called without any arguments, return whether it is privileged
+    $privileged
+  elif "$1"; then
+    privileged=true
+  else
+    privileged=false
+  fi
+}
+
+publish() {
+  if [ -z "${1+x}" ]; then
+    error "Must provide port publish specification as argument!"
+    return 1
+  else
+    exposed_ports+=("$1")
+  fi
+}
+
+required_env_var() {
+  if [ -z "${1+x}" ]; then
+    error "Must provide name of required environment variable!"
+    return 1
+  else
+    required_env+=("$1")
+  fi
+}
+
+run_args() {
+  if [ "${#@}" -gt 0 ]; then
+    run_args+=("$@")
+  else
+    error "Must provide one or more arguments for run_args!"
+    return 1
+  fi
+}
+
+volume() {
+  if [ -z "${1+x}" ]; then
+    error "Must provide volume specification!"
+    return 1
+  else
+    volumes+=("$1")
+  fi
+}
+
+workspace_path() {
+  if [ -z "${1+x}" ]; then
+    # No argument specified, so return the current name
+    echo "${workspace_dir}"
+  else
+    # Otherwise set the current name
+    if [ -z "$1" ]; then
+      error "Cannot specify an empty path for workspace_path!"
+      return 1
+    fi
+    workspace_dir="$1"
+  fi
+}
+
+container_running() {
+  [ "$(docker inspect --format '{{ .State.Status }}' $container_name 2>&1)" = "running" ]
+}
+
+container-exists() {
+  docker inspect $container_name >/dev/null 2>&1
+}
+
+destroy_container() {
+  if container_running; then
+    docker stop $container_name >/dev/null || true
+  fi
+  if container_running; then
+    docker kill $container_name >/dev/null || true
+  fi
+  if container-exists; then
+    docker rm --force $container_name >/dev/null
+  fi
+}
+
+port-taken-on-localhost() {
+  echo | nc -w 1 localhost $1 >/dev/null 2>&1
+}
+
+process-exposed-ports() {
+  forwarded_ports=() # OS X: Ports forwarded from the local machine to the VM
+  published_ports=() # Ports published by the container on the Docker host
+
+  # Need to explicitly check length of array before accessing it
+  if [ ${#exposed_ports[@]} -eq 0 ]; then
+    return
+  fi
+
+  for port_spec in ${exposed_ports[@]}; do
+    colons="$(grep -o ':' <<< "$port_spec" | wc -l | tr -d '[[:space:]]')"
+    case $colons in
+    0)
+      warn "Ignoring port specification $port_spec as it does not specify the host port"
+      ;;
+    1)
+      local host_port="$(cut -d: -f1 <<< "$port_spec")"
+
+      if port-taken-on-localhost $host_port; then
+        warn "Ignoring port specification $port_spec since another process has already bound to localhost:$host_port"
+        warn "You're likely already running the service locally."
+      else
+        published_ports+=("$port_spec")
+      fi
+      ;;
+    2)
+      warn "Ignoring port specification since it contains a specific host address: '$port_spec'"
+      ;;
+    *)
+      error "Invalid port specification: '$port_spec'"
+      return 1
+      ;;
+    esac
+  done
+}
+
+update-executable() {
+  local current_executable="$0"
+  local new_executable="$0-new"
+  local url="https://mirror.brigade.zone/bin/dock"
+
+  echo "Fetching latest executable..."
+  if ! curl --fail --silent --show-error "$url" > "$new_executable"; then
+    error "Unable to fetch latest executable from $url"
+    return 1
+  fi
+
+  if diff -q "$current_executable" "$new_executable" >/dev/null; then
+    echo "$current_executable is already up-to-date!"
+    rm -f "$new_executable"
+  else
+    chmod +x "$new_executable"
+    mv "$new_executable" "$current_executable"
+    success "$current_executable was updated!"
+  fi
+}
+
+# We don't want to deal with managing all the user's dependencies, so check for
+# key ones and get them to install it however they prefer.
+check-dependencies() {
+  if ! in_path docker; then
+    error 'Cannot find `docker` executable in your path!'
+    error 'Have you installed Docker on this machine?'
+    return 1
+  elif ! docker info >/dev/null 2>&1; then
+    error 'Cannot connect to the Docker daemon'
+    echo 'Is the daemon running on this host?'
+    echo 'Does your user have permission to communicate with the Docker socket?'
+    return 1
+  fi
+}
+
+initialize-variables() {
+  if ! git rev-parse --git-dir >/dev/null 2>&1; then
+    error "You must be in a Git repository to run: $(basename $0) $@"
+    return 1
+  fi
+
+  repo_root=$(git rev-parse --show-toplevel)
+  repo=$(basename "$repo_root")
+  repo=${repo//[^a-zA-Z0-9.-]/-} # Ensure slug is a valid name for Docker
+  run_args=("docker" "run")
+  dockerfile=""
+  image=""
+  detach=false
+  detach_keys="ctrl-x,x" # Ctrl-P is a useful shortcut when using Bash
+  dock_in_dock=false # Don't create recursive Dock containers by default
+  pull=false
+  privileged=false
+  env=()
+  optional_env=()
+  required_env=()
+  container_name="$repo-dock"
+  volumes=()
+  exposed_ports=()
+  workspace_dir="/workspace"
+  force_tty=false
+  attach_command_args=("sh")
+  command_args=()
+
+  # When running on a Mac, all Docker commands are actually run as a user on a VM
+  # which has a different UID/GID than your Mac user. Set helper variables which
+  # can be used in .dock files to use the correct UID/GID without having to know
+  # whether developer is running Mac or Linux
+  current_uid="$(id -u)"
+  current_gid="$(id -g)"
+
+  # Since the configuration file must be sourced before command line arguments are
+  # processed (in order to allow command line args to override config), we have to
+  # do a separate argument parse step to determine the custom config file.
+  dock_file="$default_conf_file"
+  explicit_dock_config=false
+  while getopts ":c:" opt; do
+    case $opt in
+      c)
+        dock_file="$OPTARG"
+        explicit_dock_config=true
+        ;;
+    esac
+  done
+  OPTIND=1 # Reset index so that we can parse the arguments with getopts again
+
+  # Load additional variables from config file
+  # (useful for defining default image/dockerfile).
+  # Command line arguments will override these if present.
+  if [ -e "$dock_file" ]; then
+    source "$dock_file"
+  elif $explicit_dock_config; then
+    error "Dock configuration file '$dock_file' does not exist!"
+    exit 1
+  fi
+
+  # Mount repository in the container
+  volumes+=("$repo_root:/$workspace_dir:rw")
+}
+
+attach_to_container() {
+  if container_running; then
+    exec_args=("docker" "exec" "--interactive" "--tty")
+    if $privileged; then
+      exec_args+=("--privileged")
+    fi
+    exec_args+=("$container_name" "${attach_command_args[@]}")
+
+    exec "${exec_args[@]}"
+  elif container-exists; then
+    error "Container $container_name exists but is not running, so you can't attach."
+    return 1
+  else
+    error "No container named $container_name is currently running."
+    error "You must start the container first before you can attach!"
+    return 1
+  fi
+}
+
+check_for_existing_container() {
+  if container-exists; then
+    if ci; then
+      # We always want to destroy a previous container in a CI environment so we
+      # can run a new build
+      destroy_container
+    else
+      if container_running; then
+        error "Container $container_name is already running."
+        if interactive; then
+          ask "Attach to the container? (y/n)" n answer
+          if [ "${answer}" = "y" ]; then
+            attach_to_container
+          else
+            echo "You answered '${answer}' instead of 'y'; not attaching."
+          fi
+        else
+          echo "You can attach to it by running \`dock -a\`."
+        fi
+        return 1
+      else
+        error "Container $container_name already exists but is stopped."
+        if interactive; then
+          ask "Destroy existing container and create new one? (y/n)" n answer
+          if [ "${answer}" = "y" ]; then
+            notice "Destroying container $container_name..."
+            destroy_container
+            notice "Container $container_name destroyed."
+            return
+          else
+            echo "You answered '${answer}' instead of 'y'; not attaching."
+          fi
+        else
+          echo "You can ensure it is destroyed before starting a new container by including the -f flag."
+        fi
+        return 1
+      fi
+    fi
+  fi
+}
+
+################################################################################
+
+if [ -n "${DEBUG+x}" ]; then
+  set -x
+fi
+
+# Need to scan for help flag before running `check-dependencies` since user
+# may be trying to just view documentation and doesn't care if dependencies are
+# installed.
+while getopts ":h" opt; do
+  case $opt in
+    h)
+      display_usage
+      exit
+      ;;
+  esac
+done
+OPTIND=1 # Reset index so that we can parse the arguments with getopts again
+
+check-dependencies
+
+# Need to pass original arguments so argument processing works
+initialize-variables "$@"
+
+while getopts "ac:df" opt; do
+  case $opt in
+    a)
+      attach_to_container
+      ;;
+    c)
+      # Already processed earlier. Here to avoid parser warnings.
+      ;;
+    d)
+      detach=true
+      ;;
+    f)
+      destroy_container
+      ;;
+    /?)
+      error "Invalid option -$opt"
+      display_usage
+      exit 1
+      ;;
+  esac
+done
+
+if [ $# -ge $OPTIND ]; then
+  # Set command to remaining unparsed arguments
+  # (overrides anything that was defined in $dock_file)
+  command_args=("${@:$OPTIND}")
+fi
+
+# If we're already inside a Dock environment, just execute the command.
+# This allows us to reuse scripts with dock in their shebang line in other
+# Dock-ified scripts without invoking dock-within-dock (which is likely not what
+# we want).
+if [ -n "${INSIDE_DOCK+x}" ]; then
+  exec "${command_args[@]}"
+fi
+
+check_for_existing_container
+
+if [ ${#optional_env[@]} -gt 0 ]; then
+  for var_name in "${optional_env[@]}"; do
+    if [ -n "${!var_name+x}" ]; then
+      env+=("${var_name}=${!var_name}")
+    fi
+  done
+fi
+
+if [ ${#required_env[@]} -gt 0 ]; then
+  for var_name in "${required_env[@]}"; do
+    if [ -z "${!var_name+x}" ]; then
+      error "Environment variable ${var_name} is required but not set!"
+      exit 1
+    else
+      env+=("${var_name}=${!var_name}")
+    fi
+  done
+fi
+
+run_args+=("--name" "$container_name")
+run_args+=("--hostname" "$container_name")
+run_args+=("--workdir" "$workspace_dir")
+run_args+=("--detach-keys" "$detach_keys")
+
+if [ -n "${entrypoint+x}" ]; then
+  run_args+=("--entrypoint" "$entrypoint")
+fi
+
+if [ ${#env[@]} -gt 0 ]; then
+  for e in "${env[@]}"; do
+    run_args+=("--env" "$e")
+  done
+fi
+
+if ! $dock_in_dock; then
+  run_args+=("--env" "INSIDE_DOCK=1")
+fi
+
+process-exposed-ports
+if [ ${#published_ports[@]} -gt 0 ] && ! ci; then
+  for p in "${published_ports[@]}"; do
+    run_args+=("--publish" "$p")
+  done
+fi
+
+if $pull; then
+  run_args+=("--pull")
+  pull_flag="--pull"
+else
+  pull_flag=""
+fi
+
+if [ ${#volumes[@]} -gt 0 ]; then
+  for v in "${volumes[@]}"; do
+    run_args+=("--volume" "$v")
+  done
+fi
+
+if $detach; then
+  run_args+=("--detach")
+else
+  # Otherwise keep STDIN open and auto-remove the container on exit
+  run_args+=("--interactive" "--rm")
+fi
+
+# Default to enabling --tty flag if STDIN (fd 0) is a TTY
+# `docker run` will fail if we specify this without a TTY being present
+if $force_tty || interactive; then
+  run_args+=("--tty")
+fi
+
+if $privileged; then
+  run_args+=("--privileged")
+fi
+
+if [ -n "$dockerfile" ]; then
+  image="$repo:dock"
+  notice "Building $dockerfile into image $image..."
+  docker build $pull_flag -f "$dockerfile" -t "$image" "$repo_root"
+  notice "$dockerfile built into $image!"
+elif [ -n "$image" ] && $pull; then
+  notice "Ensuring we have the latest version of $image locally..."
+  docker pull "$image"
+elif [ -z "$image" ]; then
+  error "Must specify either an image to run or a Dockerfile to build and run!"
+  echo "(is there a $default_conf_file file in your current directory?)"
+  exit 1
+fi
+
+run_args+=("$image")
+if [ "${#command_args[@]}" -gt 0 ]; then
+  run_args+=("${command_args[@]}")
+fi
+
+notice "Starting container $container_name from image $image"
+
+restore_stdout
+
+exec "${run_args[@]}"
