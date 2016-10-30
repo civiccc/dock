@@ -1,20 +1,11 @@
-#!/usr/local/bin/dock bats
+#!/usr/bin/env bats
 
 load ../utils
-
-project_name=my-project
 
 setup() {
   destroy_all_containers
   original_dir="$(pwd)"
-  cd "$(create_repo ${project_name})"
-
-  file .dock <<-EOF
-image=alpine:latest
-pull=false
-echo "\$(user_id)" > user_id
-command=echo
-EOF
+  cd "$(create_repo)"
 }
 
 teardown() {
@@ -22,7 +13,12 @@ teardown() {
 }
 
 @test "returns the user ID of the user who ran Dock" {
-  run dock
+  file .dock <<-EOF
+image alpine:latest
+echo "\$(user_id)" > user_id
+EOF
+
+  run dock echo
   [ "$status" -eq 0 ]
   [ "$(cat user_id)" = "$(id -u)" ]
 }

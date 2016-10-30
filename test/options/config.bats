@@ -1,4 +1,4 @@
-#!/usr/local/bin/dock bats
+#!/usr/bin/env bats
 
 load ../utils
 
@@ -8,8 +8,6 @@ setup() {
   destroy_all_containers
   original_dir="$(pwd)"
   cd "$(create_repo ${project_name})"
-  echo "image=alpine:latest" >> .dock
-  echo "command='exit 1'" >> .dock
 }
 
 teardown() {
@@ -17,8 +15,16 @@ teardown() {
 }
 
 @test "specifying an explicit config file" {
-  echo "image=alpine:latest" >> .other-dock
-  echo "command=echo" >> .other-dock
+  file .dock <<-EOF
+image alpine:latest
+default_command exit 1
+EOF
+
+  file .other-dock <<-EOF
+image alpine:latest
+default_command echo Hello
+EOF
+
   run dock -d -c .other-dock sh
   [ "$status" -eq 0 ]
 }

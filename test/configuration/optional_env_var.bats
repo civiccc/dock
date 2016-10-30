@@ -12,10 +12,9 @@ teardown() {
   cd "${original_dir}"
 }
 
-@test "when optional environment variable not set it ignores it" {
+@test "when optional_env_var is specified but not set on host it is ignored" {
   file .dock <<-EOF
-image=alpine:latest
-pull=false
+image alpine:latest
 optional_env_var MY_VAR
 EOF
 
@@ -23,10 +22,9 @@ EOF
   [ "$status" -eq 0 ]
 }
 
-@test "when optional environment variable is set it is injected into the container" {
+@test "when optional_env_var is specified and set on host it is injected into the container" {
   file .dock <<-EOF
-image=alpine:latest
-pull=false
+image alpine:latest
 optional_env_var MY_VAR
 EOF
 
@@ -35,10 +33,9 @@ EOF
   [[ "$output" =~ "foo" ]]
 }
 
-@test "when not given an argument is returns an error" {
+@test "when optional_env_var not given an argument returns an error" {
   file .dock <<-EOF
-image=alpine:latest
-pull=false
+image alpine:latest
 optional_env_var
 EOF
 

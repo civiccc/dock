@@ -14,8 +14,7 @@ teardown() {
 
 @test "when env_var specified without any arguments it returns error" {
   file .dock <<-EOF
-image=alpine:latest
-pull=false
+image alpine:latest
 env_var
 EOF
 
@@ -26,8 +25,7 @@ EOF
 
 @test "when env_var specified name but not value it returns error" {
   file .dock <<-EOF
-image=alpine:latest
-pull=false
+image alpine:latest
 env_var MY_VAR
 EOF
 
@@ -38,8 +36,7 @@ EOF
 
 @test "when env_var specified it is injected into container" {
   file .dock <<-EOF
-image=alpine:latest
-pull=false
+image alpine:latest
 env_var MY_VAR "some value with spaces"
 EOF
 

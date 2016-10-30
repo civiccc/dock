@@ -210,10 +210,6 @@ linux() {
   [ "$(uname)" = Linux ]
 }
 
-ci() {
-  [ -n "${CI+x}" ] && [ "$CI" = 1 -o "$CI" = true ]
-}
-
 interactive() {
   [ -t 0 ]
 }
@@ -317,7 +313,7 @@ container_running() {
   [ "$(docker inspect --format '{{ .State.Status }}' $container_name 2>&1)" = "running" ]
 }
 
-container-exists() {
+container_exists() {
   docker inspect $container_name >/dev/null 2>&1
 }
 
@@ -328,7 +324,7 @@ destroy_container() {
   if container_running; then
     docker kill $container_name >/dev/null || true
   fi
-  if container-exists; then
+  if container_exists; then
     docker rm --force $container_name >/dev/null
   fi
 }
@@ -396,7 +392,7 @@ update-executable() {
 
 # We don't want to deal with managing all the user's dependencies, so check for
 # key ones and get them to install it however they prefer.
-check-dependencies() {
+check_dependencies() {
   if ! in_path docker; then
     error 'Cannot find `docker` executable in your path!'
     error 'Have you installed Docker on this machine?'
@@ -482,7 +478,7 @@ attach_to_container() {
     exec_args+=("$container_name" "${attach_command_args[@]}")
 
     exec "${exec_args[@]}"
-  elif container-exists; then
+  elif container_exists; then
     error "Container $container_name exists but is not running, so you can't attach."
     return 1
   else
@@ -493,42 +489,36 @@ attach_to_container() {
 }
 
 check_for_existing_container() {
-  if container-exists; then
-    if ci; then
-      # We always want to destroy a previous container in a CI environment so we
-      # can run a new build
-      destroy_container
-    else
-      if container_running; then
-        error "Container $container_name is already running."
-        if interactive; then
-          ask "Attach to the container? (y/n)" n answer
-          if [ "${answer}" = "y" ]; then
-            attach_to_container
-          else
-            echo "You answered '${answer}' instead of 'y'; not attaching."
-          fi
+  if container_exists; then
+    if container_running; then
+      error "Container $container_name is already running."
+      if interactive; then
+        ask "Attach to the container? (y/n)" n answer
+        if [ "${answer}" = "y" ]; then
+          attach_to_container
         else
-          echo "You can attach to it by running \`dock -a\`."
+          echo "You answered '${answer}' instead of 'y'; not attaching."
         fi
-        return 1
       else
-        error "Container $container_name already exists but is stopped."
-        if interactive; then
-          ask "Destroy existing container and create new one? (y/n)" n answer
-          if [ "${answer}" = "y" ]; then
-            notice "Destroying container $container_name..."
-            destroy_container
-            notice "Container $container_name destroyed."
-            return
-          else
-            echo "You answered '${answer}' instead of 'y'; not attaching."
-          fi
-        else
-          echo "You can ensure it is destroyed before starting a new container by including the -f flag."
-        fi
-        return 1
+        echo "You can attach to it by running \`dock -a\`."
       fi
+      return 1
+    else
+      error "Container $container_name already exists but is stopped."
+      if interactive; then
+        ask "Destroy existing container and create new one? (y/n)" n answer
+        if [ "${answer}" = "y" ]; then
+          notice "Destroying container $container_name..."
+          destroy_container
+          notice "Container $container_name destroyed."
+          return
+        else
+          echo "You answered '${answer}' instead of 'y'; not attaching."
+        fi
+      else
+        echo "You can ensure it is destroyed before starting a new container by including the -f flag."
+      fi
+      return 1
     fi
   fi
 }
@@ -539,7 +529,7 @@ if [ -n "${DEBUG+x}" ]; then
   set -x
 fi
 
-# Need to scan for help flag before running `check-dependencies` since user
+# Need to scan for help flag before running `check_dependencies` since user
 # may be trying to just view documentation and doesn't care if dependencies are
 # installed.
 while getopts ":h" opt; do
@@ -552,7 +542,7 @@ while getopts ":h" opt; do
 done
 OPTIND=1 # Reset index so that we can parse the arguments with getopts again
 
-check-dependencies
+check_dependencies
 
 # Need to pass original arguments so argument processing works
 initialize-variables "$@"
@@ -638,7 +628,7 @@ if ! $dock_in_dock; then
 fi
 
 process-exposed-ports
-if [ ${#published_ports[@]} -gt 0 ] && ! ci; then
+if [ ${#published_ports[@]} -gt 0 ]; then
   for p in "${published_ports[@]}"; do
     run_args+=("--publish" "$p")
   done

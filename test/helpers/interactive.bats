@@ -14,8 +14,7 @@ teardown() {
 
 @test "returns true when standard input is a TTY" {
   file .dock <<-EOF
-image=alpine:latest
-pull=false
+image alpine:latest
 
 if interactive; then
   touch is_interactive
@@ -23,11 +22,9 @@ fi
 if ! interactive; then
   touch is_not_interactive
 fi
-
-command=echo
 EOF
 
-  run script --return -c dock /dev/null
+  run script --return -c "dock echo" /dev/null
   [ "$status" -eq 0 ]
   [ -e is_interactive ]
   [ ! -e is_not_interactive ]
@@ -35,8 +32,7 @@ EOF
 
 @test "returns false when standard input is not a TTY" {
   file .dock <<-EOF
-image=alpine:latest
-pull=false
+image alpine:latest
 
 if interactive; then
   touch is_interactive
@@ -44,11 +40,9 @@ fi
 if ! interactive; then
   touch is_not_interactive
 fi
-
-command=echo
 EOF
 
-  echo | dock
+  echo | dock echo
   [ ! -e is_interactive ]
   [ -e is_not_interactive ]
 }

@@ -14,8 +14,7 @@ teardown() {
 
 @test "when environment variable required but not set it returns an error" {
   file .dock <<-EOF
-image=alpine:latest
-pull=false
+image alpine:latest
 required_env_var MY_VAR
 EOF
 
@@ -26,8 +25,7 @@ EOF
 
 @test "when required environment variable is set it is injected into the container" {
   file .dock <<-EOF
-image=alpine:latest
-pull=false
+image alpine:latest
 required_env_var MY_VAR
 EOF
 
@@ -38,8 +36,7 @@ EOF
 
 @test "when not given an argument is returns an error" {
   file .dock <<-EOF
-image=alpine:latest
-pull=false
+image alpine:latest
 required_env_var
 EOF
 

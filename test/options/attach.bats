@@ -1,4 +1,4 @@
-#!/usr/local/bin/dock bats
+#!/usr/bin/env bats
 
 load ../utils
 

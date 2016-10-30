@@ -1,4 +1,4 @@
-#!/usr/local/bin/dock bats
+#!/usr/bin/env bats
 
 load ../utils
 
@@ -8,7 +8,7 @@ setup() {
   destroy_all_containers
   original_dir="$(pwd)"
   cd "$(create_repo ${project_name})"
-  echo "image=alpine:latest" > .dock
+  echo "image alpine:latest" > .dock
 }
 
 teardown() {

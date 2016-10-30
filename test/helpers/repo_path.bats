@@ -15,13 +15,11 @@ teardown() {
 
 @test "returns absolute path to the repo" {
   file .dock <<-EOF
-image=alpine:latest
-pull=false
+image alpine:latest
 echo "\$(repo_path)" > repo_path
-command=echo
 EOF
 
-  run dock
+  run dock echo
   [ "$status" -eq 0 ]
   [ "$(cat repo_path)" = "${actual_repo_path}" ]
 }

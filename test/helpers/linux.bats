@@ -16,8 +16,7 @@ teardown() {
 # which is based on CentOS. Far from perfect but "good enough"
 @test "returns true if the OS is Linux" {
   file .dock <<-EOF
-image=alpine:latest
-pull=false
+image alpine:latest
 
 if linux; then
   touch is_linux
@@ -25,11 +24,9 @@ fi
 if ! linux; then
   touch is_not_linux
 fi
-
-command=echo
 EOF
 
-  run dock
+  run dock echo
   [ "$status" -eq 0 ]
   [ -e is_linux ]
   [ ! -e is_not_linux ]

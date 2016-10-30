@@ -12,12 +12,11 @@ teardown() {
   cd "${original_dir}"
 }
 
-@test "when specification provided it mounts the volume" {
+@test "when volume helper provided a specification it bind mounts" {
   echo "Some contents" > file_to_mount
 
   file .dock <<-EOF
-image=alpine:latest
-pull=false
+image alpine:latest
 volume "\$(repo_path)/file_to_mount:/etc/mounted_file"
 EOF
 
@@ -26,10 +25,9 @@ EOF
   [[ "$output" =~ "Some contents" ]]
 }
 
-@test "when specification is not provided it fails with an error" {
+@test "when volume helper is not provided a specification it fails with an error" {
   file .dock <<-EOF
-image=alpine:latest
-pull=false
+image alpine:latest
 volume # No argument given should result in error
 EOF
 

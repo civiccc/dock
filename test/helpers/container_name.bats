@@ -16,27 +16,23 @@ teardown() {
 
 @test "returns the name of the container" {
   file .dock <<-EOF
-image=alpine:latest
-pull=false
+image alpine:latest
 echo "\$(container_name)" > container_name
-command=echo
 EOF
 
-  run dock
+  run dock echo
   [ "$status" -eq 0 ]
   [ "$(cat container_name)" = my-project-dock ]
 }
 
 @test "returns the name defined by container_name option" {
   file .dock <<-EOF
-image=alpine:latest
-pull=false
+image alpine:latest
 container_name my-custom-name
 echo "\$(container_name)" > container_name
-command=echo
 EOF
 
-  run dock
+  run dock echo
   [ "$status" -eq 0 ]
   [ "$(cat container_name)" = my-custom-name ]
 }

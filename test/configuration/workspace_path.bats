@@ -12,10 +12,9 @@ teardown() {
   cd "${original_dir}"
 }
 
-@test "mounts project at path specified by workspace_path" {
+@test "when workspace_path defined it mounts project at specified path" {
   file .dock <<-EOF
-image=alpine:latest
-pull=false
+image alpine:latest
 workspace_path /custom-workspace
 EOF
 
