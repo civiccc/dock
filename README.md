@@ -127,9 +127,19 @@ Run `dock -d` or specify `detach true` in your Dock configuration.
 
 ## Configuration
 
-The Dock configuration file is quite flexible given it's simply sourced as a
+The Dock configuration file is quite flexible since it's simply sourced as a
 Bash script. By default Dock looks for a `.dock` file at the root of your
-repository.
+repository and sources it.
+
+This means anything you can do in Bash you can also do in this script.
+Therefore caution is required!
+
+However, this also provides an incredible amount of power. A common use case
+is to dynamically change which environment variables are set or volumes are
+mounted based on whether you are running in a CI (continuous integration)
+testing environment or just a regular development environment.
+
+Dock exposes configuration options and helpers.
 
 ### Options
 
