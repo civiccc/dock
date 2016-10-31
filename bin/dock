@@ -15,10 +15,12 @@
 #                       already-existing container).
 # -q                    Don't display any Dock-specific output (just output from
 #                       the command you are running in the container)
+# -v                    Display version information.
 # END USAGE DOCUMENTATION
 
 set -euo pipefail
 
+dock_version="1.0.0.dev"
 dock_bin="$0"
 
 # We want all output to go to STDERR so that STDOUT receives output from the
@@ -173,6 +175,10 @@ dock_in_dock() {
   else
     dock_in_dock="$1"
   fi
+}
+
+dock_version() {
+  echo "$dock_version"
 }
 
 entrypoint() {
@@ -536,7 +542,7 @@ fi
 # Need to scan for help flag before running `check_dependencies` since user
 # may be trying to just view documentation and doesn't care if dependencies are
 # installed.
-while getopts ":hq" opt; do
+while getopts ":hqv" opt; do
   case $opt in
     h)
       display_usage
@@ -544,6 +550,10 @@ while getopts ":hq" opt; do
       ;;
     q)
       quiet=true
+      ;;
+    v)
+      echo "$(dock_version)"
+      exit
       ;;
   esac
 done

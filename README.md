@@ -115,6 +115,7 @@ Option                 | Description
 `-d`                   | Detach/daemonize (run resulting Dock container in the background)
 `-f`                   | Force creation of new container (destroying old one if it exists)
 `-q`                   | Silence Dock-related output (so only output from command run in the container is shown)
+`-v`                   | Display version information
 
 ### Attach to an already-running container
 
