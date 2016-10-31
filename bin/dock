@@ -639,10 +639,6 @@ if [ ${#published_ports[@]} -gt 0 ]; then
   done
 fi
 
-if $pull; then
-  run_args+=("--pull")
-fi
-
 if [ ${#volumes[@]} -gt 0 ]; then
   for v in "${volumes[@]}"; do
     run_args+=("--volume" "$v")
