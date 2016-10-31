@@ -13,10 +13,6 @@ privileged true
 # Execute this script with the original command arguments passed to it
 entrypoint script/entrypoint.bash
 
-# We want to mount the repo's local Dock executable instead of the global one a
-# user may have installed.
-volume "${repo_root}/bin/dock:/usr/local/bin/dock"
-
 # Ensure all the temporary files we create during test runs use the host file
 # system (for performance) and are destroyed between runs.
 volume "/tmp"

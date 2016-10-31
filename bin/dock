@@ -19,6 +19,8 @@
 
 set -euo pipefail
 
+dock_bin="$0"
+
 # We want all output to go to STDERR so that STDOUT receives output from the
 # original command. This makes shebang Dock scripts more useful as they will
 # appear to act exactly like the original script (if you ignore STDERR).
@@ -421,7 +423,7 @@ initialize_variables() {
   optional_env=()
   required_env=()
   container_name="$repo-dock"
-  volumes=()
+  volumes=("$(readlink -f $dock_bin):/usr/local/bin/dock")
   exposed_ports=()
   workspace_dir="/workspace"
   force_tty=false
