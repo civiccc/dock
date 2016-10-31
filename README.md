@@ -116,7 +116,7 @@ Option                 | Description
 `-f`                   | Force creation of new container (destroying old one if it exists)
 `-q`                   | Silence Dock-related output (so only output from command run in the container is shown)
 `-v`                   | Display version information
-`-V`                   | Display extended version information (for bug reports)
+`-V`                   | Display verbose version information (for bug reports)
 
 ### Attach to an already-running container
 

@@ -102,7 +102,7 @@ display_debug_version_info() {
     echo "Docker executable not found in PATH!"
   fi
   echo "Bash:   $BASH_VERSION"
-  echo "OS:     $(uname -v)"
+  echo "OS:     $(uname -a)"
 }
 
 display_usage() {
