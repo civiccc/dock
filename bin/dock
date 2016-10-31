@@ -408,6 +408,7 @@ initialize_variables() {
   repo_root=$(git rev-parse --show-toplevel)
   repo=$(basename "$repo_root")
   repo=${repo//[^a-zA-Z0-9.-]/-} # Ensure slug is a valid name for Docker
+  build_args=("docker" "build")
   run_args=("docker" "run")
   dockerfile=""
   image=""
@@ -523,6 +524,10 @@ if [ -n "${DEBUG+x}" ]; then
   set -x
 fi
 
+if [ -n "${QUIET+x}" ] && [ "$QUIET" -eq 1 ]; then
+  quiet=true
+fi
+
 # Need to scan for help flag before running `check_dependencies` since user
 # may be trying to just view documentation and doesn't care if dependencies are
 # installed.
@@ -636,9 +641,6 @@ fi
 
 if $pull; then
   run_args+=("--pull")
-  pull_flag="--pull"
-else
-  pull_flag=""
 fi
 
 if [ ${#volumes[@]} -gt 0 ]; then
@@ -667,11 +669,24 @@ fi
 if [ -n "$dockerfile" ]; then
   image="$repo:dock"
   notice "Building $dockerfile into image $image..."
-  docker build $pull_flag -f "$dockerfile" -t "$image" "$repo_root"
+  if $pull; then
+    build_args+=("--pull")
+  fi
+  build_args+=("-f" "$dockerfile" "-t" "$image" "$repo_root")
+  if quiet; then
+    "${build_args[@]}" 2>&1 >/dev/null
+  else
+    "${build_args[@]}"
+  fi
   notice "$dockerfile built into $image!"
 elif [ -n "$image" ] && $pull; then
   notice "Ensuring we have the latest version of $image locally..."
-  docker pull "$image"
+  pull_args=("docker" "pull" "$image")
+  if quiet; then
+    "${pull_args[@]}" 2>&1 >/dev/null
+  else
+    "${pull_args[@]}"
+  fi
 elif [ -z "$image" ]; then
   error "Must specify either an image to run or a Dockerfile to build and run!"
   info "(is there a $default_conf_file file in your current directory?)"

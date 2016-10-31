@@ -150,10 +150,10 @@ argument (`bash` in this case).
 Any Dock-related output will go to the standard error stream, but the standard
 output stream will contain output from the original script. If you need to
 inspect the command's standard error stream and don't want to deal with filtering
-out Dock-related output, you can specify the `-q` flag to `dock` in order to
-silence all Dock-related output. Note that this can potentially be confusing since
-if the image has never been built before it may take a while to build, giving the
-appearance of nothing happening.
+out Dock-related output, you can specify the `QUIET` environment variable in order
+to silence all Dock-related output. Note that this can potentially be confusing
+since if the image has never been built before it may take a while to build,
+giving the appearance of nothing happening.
 
 **WARNING**: Never specify more than one argument to the shebang line. Different
 operating systems have different restrictions on shebangs. While some allow you
