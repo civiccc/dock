@@ -139,7 +139,7 @@ to your script, you can have the script automatically run inside a Dock containe
 
 ```bash
 #!/usr/local/bin/dock bash
-echo We are in a container!
+echo "We are in a container!"
 ```
 
 If you run this in a project with a valid Dock configuration file, the script
