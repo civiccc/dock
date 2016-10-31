@@ -5,7 +5,7 @@
 
 if [ "${#@}" -eq 0 ]; then
   # No arguments given, so run all tests
-  exec bats $(find test -name "*.bats")
+  exec bats --tap $(find test -name "*.bats")
 else
   exec bats "$@"
 fi
