@@ -110,6 +110,7 @@ Option                 | Description
 `-c config-file`       | Path of Dock configuration file to use (default `.dock`)
 `-d`                   | Detach/daemonize (run resulting Dock container in the background)
 `-f`                   | Force creation of new container (destroying old one if it exists)
+`-q`                   | Silence Dock-related output (so only output from command run in the container is shown)
 
 ### Attach to an already-running container
 
@@ -145,6 +146,14 @@ If you run this in a project with a valid Dock configuration file, the script
 will invoke Dock which will start a container using the image defined by the
 configuration execute the script using whatever command you passed as the second
 argument (`bash` in this case).
+
+Any Dock-related output will go to the standard error stream, but the standard
+output stream will contain output from the original script. If you need to
+inspect the command's standard error stream and don't want to deal with filtering
+out Dock-related output, you can specify the `-q` flag to `dock` in order to
+silence all Dock-related output. Note that this can potentially be confusing since
+if the image has never been built before it may take a while to build, giving the
+appearance of nothing happening.
 
 **WARNING**: Never specify more than one argument to the shebang line. Different
 operating systems have different restrictions on shebangs. While some allow you

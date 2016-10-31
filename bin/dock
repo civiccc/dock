@@ -13,6 +13,8 @@
 #
 # -f                    Force creation of new container (destroying any
 #                       already-existing container).
+# -q                    Don't display any Dock-specific output (just output from
+#                       the command you are running in the container)
 # END USAGE DOCUMENTATION
 
 set -euo pipefail
@@ -40,6 +42,7 @@ cyan="\033[0;36m"
 reset="\033[0m"
 
 error() {
+  quiet && return || true
   if interactive; then
     echo -en "${red}ERROR${reset}: "
   else
@@ -49,6 +52,7 @@ error() {
 }
 
 warn() {
+  quiet && return || true
   if interactive; then
     echo -en "${yellow}WARN${reset}: "
   else
@@ -58,6 +62,7 @@ warn() {
 }
 
 notice() {
+  quiet && return || true
   if interactive; then
     echo -e "${cyan}$@${reset}"
   else
@@ -65,7 +70,13 @@ notice() {
   fi
 }
 
+info() {
+  quiet && return || true
+  echo "$@"
+}
+
 success() {
+  quiet && return || true
   if interactive; then
     echo -e "${green}$@${reset}"
   else
@@ -86,7 +97,7 @@ ask() {
   local question="$1"
   local default="$2"
   local var_name="$3"
-  if interactive; then
+  if interactive && ! quiet; then
     echo -en "${cyan}${question}${reset} [$default] "
     read $var_name
     [ -z "${!var_name}" ] && eval $var_name="$default" || true
@@ -268,6 +279,10 @@ publish() {
   fi
 }
 
+quiet() {
+  [ -n "${quiet+x}" ] && $quiet
+}
+
 required_env_var() {
   if [ -z "${1+x}" ]; then
     error "Must provide name of required environment variable!"
@@ -369,27 +384,6 @@ process-exposed-ports() {
   done
 }
 
-update-executable() {
-  local current_executable="$0"
-  local new_executable="$0-new"
-  local url="https://mirror.brigade.zone/bin/dock"
-
-  echo "Fetching latest executable..."
-  if ! curl --fail --silent --show-error "$url" > "$new_executable"; then
-    error "Unable to fetch latest executable from $url"
-    return 1
-  fi
-
-  if diff -q "$current_executable" "$new_executable" >/dev/null; then
-    echo "$current_executable is already up-to-date!"
-    rm -f "$new_executable"
-  else
-    chmod +x "$new_executable"
-    mv "$new_executable" "$current_executable"
-    success "$current_executable was updated!"
-  fi
-}
-
 # We don't want to deal with managing all the user's dependencies, so check for
 # key ones and get them to install it however they prefer.
 check_dependencies() {
@@ -399,13 +393,13 @@ check_dependencies() {
     return 1
   elif ! docker info >/dev/null 2>&1; then
     error 'Cannot connect to the Docker daemon'
-    echo 'Is the daemon running on this host?'
-    echo 'Does your user have permission to communicate with the Docker socket?'
+    info 'Is the daemon running on this host?'
+    info 'Does your user have permission to communicate with the Docker socket?'
     return 1
   fi
 }
 
-initialize-variables() {
+initialize_variables() {
   if ! git rev-parse --git-dir >/dev/null 2>&1; then
     error "You must be in a Git repository to run: $(basename $0) $@"
     return 1
@@ -497,10 +491,10 @@ check_for_existing_container() {
         if [ "${answer}" = "y" ]; then
           attach_to_container
         else
-          echo "You answered '${answer}' instead of 'y'; not attaching."
+          info "You answered '${answer}' instead of 'y'; not attaching."
         fi
       else
-        echo "You can attach to it by running \`dock -a\`."
+        info "You can attach to it by running \`dock -a\`."
       fi
       return 1
     else
@@ -513,10 +507,10 @@ check_for_existing_container() {
           notice "Container $container_name destroyed."
           return
         else
-          echo "You answered '${answer}' instead of 'y'; not attaching."
+          info "You answered '${answer}' instead of 'y'; not attaching."
         fi
       else
-        echo "You can ensure it is destroyed before starting a new container by including the -f flag."
+        info "You can ensure it is destroyed before starting a new container by including the -f flag."
       fi
       return 1
     fi
@@ -532,11 +526,14 @@ fi
 # Need to scan for help flag before running `check_dependencies` since user
 # may be trying to just view documentation and doesn't care if dependencies are
 # installed.
-while getopts ":h" opt; do
+while getopts ":hq" opt; do
   case $opt in
     h)
       display_usage
       exit
+      ;;
+    q)
+      quiet=true
       ;;
   esac
 done
@@ -545,9 +542,9 @@ OPTIND=1 # Reset index so that we can parse the arguments with getopts again
 check_dependencies
 
 # Need to pass original arguments so argument processing works
-initialize-variables "$@"
+initialize_variables "$@"
 
-while getopts "ac:df" opt; do
+while getopts "ac:dfq" opt; do
   case $opt in
     a)
       attach_to_container
@@ -560,6 +557,9 @@ while getopts "ac:df" opt; do
       ;;
     f)
       destroy_container
+      ;;
+    q)
+      # Already processed earlier. Here to avoid parser warnings.
       ;;
     /?)
       error "Invalid option -$opt"
@@ -674,7 +674,7 @@ elif [ -n "$image" ] && $pull; then
   docker pull "$image"
 elif [ -z "$image" ]; then
   error "Must specify either an image to run or a Dockerfile to build and run!"
-  echo "(is there a $default_conf_file file in your current directory?)"
+  info "(is there a $default_conf_file file in your current directory?)"
   exit 1
 fi
 
