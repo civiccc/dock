@@ -13,6 +13,8 @@ environments inside [Docker](https://www.docker.com/) containers.
 * [Configuration](#configuration)
   * [Options](#options)
   * [Helpers](#helpers)
+* [Development](#development)
+  * [Running Tests](#running-tests)
 * [License](#license)
 
 ## Installation
@@ -565,6 +567,29 @@ User ID of the user that ran the Dock command.
 Directory in the container that the repository will be mounted at.
 
 Outputs the absolute path.
+
+## Development
+
+Hacking on Dock is easy thanks to the fact that it is run within a Dock
+container! Provided you have Docker and Bash installed on your system, working
+on Dock is as easy as running `bin/dock` from the root of the repository.
+
+### Running Tests
+
+Tests can be run by executing:
+
+```bash
+bin/test
+```
+
+...from the root of the repository. This will start a Dock container and run
+all tests, which are written in Bash using [Bats](https://github.com/sstephenson/bats).
+
+To run a specific test or set of tests, execute:
+
+```bash
+bin/test test/path/to/test.bats test/path/to/another.bats
+```
 
 ## License
 
