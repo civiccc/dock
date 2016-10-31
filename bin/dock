@@ -16,6 +16,7 @@
 # -q                    Don't display any Dock-specific output (just output from
 #                       the command you are running in the container)
 # -v                    Display version information.
+# -V                    Display extended version information (for bug reports)
 # END USAGE DOCUMENTATION
 
 set -euo pipefail
@@ -90,6 +91,18 @@ success() {
 
 in_path() {
   [ "$(type -t "$1")" = file ] && command -v "$1" >/dev/null 2>&1
+}
+
+display_debug_version_info() {
+  echo "Dock:   $(dock_version)"
+  echo -n "Docker: "
+  if in_path docker; then
+    echo "$(docker --version)"
+  else
+    echo "Docker executable not found in PATH!"
+  fi
+  echo "Bash:   $BASH_VERSION"
+  echo "OS:     $(uname -v)"
 }
 
 display_usage() {
@@ -542,7 +555,7 @@ fi
 # Need to scan for help flag before running `check_dependencies` since user
 # may be trying to just view documentation and doesn't care if dependencies are
 # installed.
-while getopts ":hqv" opt; do
+while getopts ":hqvV" opt; do
   case $opt in
     h)
       display_usage
@@ -553,6 +566,10 @@ while getopts ":hqv" opt; do
       ;;
     v)
       echo "$(dock_version)"
+      exit
+      ;;
+    V)
+      display_debug_version_info
       exit
       ;;
   esac
