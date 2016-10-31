@@ -1,7 +1,7 @@
 #!/bin/bash
 
-# USAGE DOCUMENTATION
-# `dock` is a tool for defining, building, and running self-contained
+# START USAGE DOCUMENTATION
+# dock is a tool for defining, building, and running self-contained
 # development environments inside Docker containers.
 #
 # Usage: dock [options] [command]
@@ -106,8 +106,9 @@ display_debug_version_info() {
 }
 
 display_usage() {
-  # TODO: read documentation at top of file
-  echo
+  start_line="$(grep -n 'START USAGE DOCUMENTATION' $dock_bin | head -n1 | cut -d: -f1)"
+  end_line="$(grep -n 'END USAGE DOCUMENTATION' $dock_bin | head -n1 | cut -d: -f1)"
+  tail -n+$(expr $start_line + 1) $dock_bin | head -n$(expr $end_line - $start_line - 1) | sed 's|# ||' | sed 's|#||' || true
 }
 
 ask() {
