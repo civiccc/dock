@@ -461,7 +461,7 @@ initialize_variables() {
   fi
 
   # Mount repository in the container
-  volumes+=("$repo_root:/$workspace_dir:rw")
+  volumes+=("$repo_root:$workspace_dir:rw")
 }
 
 attach_to_container() {
