@@ -456,10 +456,13 @@ initialize_variables() {
   # (useful for defining default image/dockerfile).
   # Command line arguments will override these if present.
   if [ -e "$dock_file" ]; then
-    source "$dock_file"
+    if ! source "$dock_file"; then
+      error "Problem sourcing $dock_file"
+      return 1
+    fi
   elif $explicit_dock_config; then
     error "Dock configuration file '$dock_file' does not exist!"
-    exit 1
+    return 1
   fi
 
   # Mount repository in the container

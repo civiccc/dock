@@ -25,6 +25,13 @@ image alpine:latest
 default_command echo Hello
 EOF
 
-  run dock -d -c .other-dock sh
+  run dock -c .other-dock
   [ "$status" -eq 0 ]
+  [[ "$output" =~ "Hello" ]]
+}
+
+@test "specifying a non-existent config file" {
+  run dock -c .other-dock echo
+  [ "$status" -eq 1 ]
+  [[ "$output" =~ "Dock configuration file '.other-dock' does not exist!" ]]
 }
