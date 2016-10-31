@@ -597,4 +597,4 @@ bin/test test/path/to/test.bats test/path/to/another.bats
 
 ## License
 
-Dock is released under the [MIT license](LICENSE.md).
+Dock is released under the [Apache 2.0 license](LICENSE).
