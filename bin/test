@@ -1,0 +1,11 @@
+#!bin/dock bash
+
+# When run from the root project directory as `bin/test`, runs all tests within
+# the Dock container.
+
+if [ "${#@}" -eq 0 ]; then
+  # No arguments given, so run all tests
+  exec bats $(find test -name "*.bats")
+else
+  exec bats "$@"
+fi
