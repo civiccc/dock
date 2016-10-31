@@ -17,6 +17,7 @@ environments inside [Docker](https://www.docker.com/) containers.
   * [Helpers](#helpers)
 * [Development](#development)
   * [Running Tests](#running-tests)
+* [Change Log](#change-log)
 * [License](#license)
 
 ## Installation
@@ -595,6 +596,11 @@ To run a specific test or set of tests, execute:
 ```bash
 bin/test test/path/to/test.bats test/path/to/another.bats
 ```
+
+## Change Log
+
+If you're interested in seeing a summarized list of changes between each version
+of Dock, see the [Dock Change Log](CHANGELOG.md)
 
 ## License
 
