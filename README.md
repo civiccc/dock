@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.org/brigade/dock.svg?branch=master)](https://travis-ci.org/brigade/dock)
+
 # Dock
 
 `dock` is a tool for defining, building, and running self-contained development
