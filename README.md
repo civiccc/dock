@@ -425,7 +425,7 @@ publish "3306:3306"
 #### `pull_latest`
 
 Specifies whether Docker should always attempt to pull the latest version of
-an image/tag to ensure it is up to date. Default is `true`.
+an image/tag to ensure it is up to date. Default is `false`.
 
 ```bash
 pull_latest true
