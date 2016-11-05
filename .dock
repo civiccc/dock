@@ -18,6 +18,6 @@ entrypoint script/entrypoint.bash
 volume "/tmp"
 
 # Preserve Docker layer cache between runs
-volume "${container_name}_docker:/var/lib/docker"
+volume "$(container_name)_docker:/var/lib/docker"
 
 default_command bash
