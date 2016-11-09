@@ -241,6 +241,8 @@ Dock exposes configuration options and helpers.
 These configuration options can be set in your Dock configuration file.
 
 * [`attach_command`](#attach_command)
+* [`build_arg`](#build_arg)
+* [`build_flags`](#build_flags)
 * [`container_name`](#container_name)
 * [`default_command`](#default_command)
 * [`detach`](#detach)
@@ -275,6 +277,33 @@ whitespace you'll need to wrap it in quotes or escape it:
 ```bash
 attach_command echo "This is a single argument"
 attach_command echo These are multiple separate arguments
+```
+
+#### `build_arg`
+
+Specify an additional build argument to pass to the `docker build` command that
+Dock will execute when building the Dockerfile specified by the `dockerfile`
+option. Ignored if you have only specified an `image` rather than a `dockerfile`,
+as no building is done in such case.
+
+```bash
+build_arg MY_ARG "some value"
+```
+
+#### `build_flags`
+
+Specify additional arguments for the `docker build` command that Dock will
+execute when building the Dockerfile specified by the `dockerfile` option.
+Ignored if you have only specified an `image` rather than a `dockerfile`, as
+no building is done in such case.
+
+**Note**: This is not exclusively for the `--build-arg` flag that allows you to
+specify build-time variables (use the `build_arg` option instead). It allows you
+to specify _any_ flag that `docker build` accepts, e.g. `--memory`, `--no-cache`,
+etc.
+
+```bash
+build_flags --no-cache
 ```
 
 #### `container_name`

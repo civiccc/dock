@@ -141,6 +141,27 @@ attach_command() {
   fi
 }
 
+build_arg() {
+  if [ -z "${1+x}" ]; then
+    error "Must provide name and value for build argument!"
+    return 1
+  elif [ -z "${2+x}" ]; then
+    error "Must provide value for build argument $1!"
+    return 1
+  else
+    build_flags "--build-arg" "$1=$2"
+  fi
+}
+
+build_flags() {
+  if [ "${#@}" -gt 0 ]; then
+    build_args+=("$@")
+  else
+    error "Must provide one or more arguments for build_flags!"
+    return 1
+  fi
+}
+
 container_name() {
   if [ -z "${1+x}" ]; then
     # No argument specified, so return the current name
@@ -701,7 +722,7 @@ if [ -n "$dockerfile" ]; then
   if $pull; then
     build_args+=("--pull")
   fi
-  build_args+=("-f" "$dockerfile" "-t" "$image" "$repo_root")
+  build_args+=("--file" "$dockerfile" "--tag" "$image" "$repo_root")
   if quiet; then
     "${build_args[@]}" 2>&1 >/dev/null
   else
