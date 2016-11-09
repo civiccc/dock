@@ -335,11 +335,11 @@ required_env_var() {
   fi
 }
 
-run_args() {
+run_flags() {
   if [ "${#@}" -gt 0 ]; then
     run_args+=("$@")
   else
-    error "Must provide one or more arguments for run_args!"
+    error "Must provide one or more arguments for run_flags!"
     return 1
   fi
 }

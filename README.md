@@ -257,7 +257,7 @@ These configuration options can be set in your Dock configuration file.
 * [`publish`](#publish)
 * [`pull_latest`](#pull_latest)
 * [`required_env_var`](#required_env_var)
-* [`run_args`](#run_args)
+* [`run_flags`](#run_flags)
 * [`volume`](#volume)
 * [`workspace_path`](#workspace_path)
 
@@ -469,7 +469,7 @@ If not defined, Dock will halt with an error message.
 required_env_var MY_REQUIRED_ENV_VAR
 ```
 
-#### `run_args`
+#### `run_flags`
 
 Specify additional arguments for the `docker run` command that Dock will
 execute.
@@ -479,7 +479,7 @@ configuration, e.g. `env_var`, `volume`, etc. However, for special cases
 this is provided to allow you to specify additional flags.
 
 ```bash
-run_args --cpu-shares 1024
+run_flags --memory 1g
 ```
 
 #### `volume`
