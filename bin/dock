@@ -427,6 +427,25 @@ process-exposed-ports() {
   done
 }
 
+resolve_symlink() {
+  local file="$1"
+
+  (
+    cd $(dirname "$file")
+    file="$(basename "$file")"
+
+    # Iterate down (possible) chain of symlinks
+    while [ -L "$file" ]; do
+      file="$(readlink "$file")"
+      cd "$(dirname "$file")"
+      file="$(basename "$file")"
+    done
+
+    physical_dir="$(pwd -P)"
+    echo $physical_dir/$file
+  )
+}
+
 # We don't want to deal with managing all the user's dependencies, so check for
 # key ones and get them to install it however they prefer.
 check_dependencies() {
@@ -464,7 +483,7 @@ initialize_variables() {
   optional_env=()
   required_env=()
   container_name="$repo-dock"
-  volumes=("$(readlink -f $dock_bin):/usr/local/bin/dock")
+  volumes=("$(resolve_symlink $dock_bin):/usr/local/bin/dock")
   exposed_ports=()
   workspace_dir="/workspace"
   force_tty=false
