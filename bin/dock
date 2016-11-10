@@ -21,7 +21,7 @@
 
 set -euo pipefail
 
-dock_version="1.1.0.dev"
+dock_version="1.1.0"
 dock_bin="$0"
 
 # We want all output to go to STDERR so that STDOUT receives output from the
