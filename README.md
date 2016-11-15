@@ -243,6 +243,7 @@ These configuration options can be set in your Dock configuration file.
 * [`attach_command`](#attach_command)
 * [`build_arg`](#build_arg)
 * [`build_flags`](#build_flags)
+* [`container_hostname`](#container_hostname)
 * [`container_name`](#container_name)
 * [`default_command`](#default_command)
 * [`detach`](#detach)
@@ -250,7 +251,6 @@ These configuration options can be set in your Dock configuration file.
 * [`dockerfile`](#dockerfile)
 * [`dock_in_dock`](#dock_in_dock)
 * [`env_var`](#env_var)
-* [`hostname`](#hostname)
 * [`image`](#image)
 * [`optional_env_var`](#optional_env_var)
 * [`privileged`](#privileged)
@@ -304,6 +304,14 @@ etc.
 
 ```bash
 build_flags --no-cache
+```
+
+#### `container_hostname`
+
+Specifies an explicit hostname for the container.
+
+```bash
+container_hostname "$(container_name).test.com"
 ```
 
 #### `container_name`
@@ -392,14 +400,6 @@ container.
 
 ```bash
 env_var MY_ENV_VAR "my value"
-```
-
-#### `hostname`
-
-Specifies the hostname for the container. Defaults to the container name.
-
-```bash
-hostname "$(container_name).test.com"
 ```
 
 #### `image`
@@ -529,7 +529,7 @@ volume "$(container_name)_docker:/var/lib/docker"
 * [`ask`](#ask)
 * [`detach`](#detach)
 * [`group_id`](#group_id)
-* [`hostname`](#hostname)
+* [`container_hostname`](#container_hostname)
 * [`interactive`](#interactive)
 * [`linux`](#linux)
 * [`mac_os`](#mac_os)
@@ -549,6 +549,12 @@ All arguments must be specified.
 ask "Are you sure? (y/n)" n variable_to_store_answer_in
 ```
 
+#### `container_hostname`
+
+Outputs the explicit hostname that will be assigned to the container, if one
+was specified via `container_hostname "some.name"`. Otherwise it returns
+a non-zero exit status.
+
 #### `container_name`
 
 Outputs the name of the Docker container that Dock will create.
@@ -562,10 +568,6 @@ Returns zero exit status (success) if yes.
 #### `group_id`
 
 Group ID of the user that ran the Dock command.
-
-#### `hostname`
-
-Outputs the hostname that will be assigned to the container.
 
 #### `interactive`
 

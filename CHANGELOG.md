@@ -1,5 +1,11 @@
 # Dock Change Log
 
+## master (unreleased)
+
+* Don't set container hostname by default
+* Rename `hostname` option to `container_hostname` so it doesn't conflict with
+  `hostname` executable
+
 ## 1.1.0 (2016-11-09)
 
 * Add `build_flags` configuration option allowing you to specify additional

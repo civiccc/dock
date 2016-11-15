@@ -225,10 +225,15 @@ entrypoint() {
   fi
 }
 
-hostname() {
+container_hostname() {
   if [ -z "${1+x}" ]; then
-    # No argument specified, so return the current name
-    echo "${container_hostname:-$container_name}"
+    # No argument specified, so return the current name if defined
+    if [ -n "${container_hostname+x}" ]; then
+      echo "${container_hostname}"
+    else
+      error "You must set an explicit hostname first!"
+      return 1
+    fi
   else
     # Otherwise set the current name
     if [ -z "$1" ]; then
@@ -682,14 +687,13 @@ if [ ${#required_env[@]} -gt 0 ]; then
   done
 fi
 
-if [ -z "${container_hostname+x}" ]; then
-  container_hostname="$container_name"
-fi
-
 run_args+=("--name" "$container_name")
-run_args+=("--hostname" "$container_hostname")
 run_args+=("--workdir" "$workspace_dir")
 run_args+=("--detach-keys" "$detach_keys")
+
+if [ -n "${container_hostname+x}" ]; then
+  run_args+=("--hostname" "$container_hostname")
+fi
 
 if [ -n "${entrypoint+x}" ]; then
   run_args+=("--entrypoint" "$entrypoint")

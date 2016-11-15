@@ -17,19 +17,20 @@ teardown() {
 @test "returns the hostname of the container" {
   file .dock <<-EOF
 image alpine:latest
-echo "\$(hostname)" > hostname
+container_hostname my-hostname
+echo "\$(container_hostname)" > hostname
 EOF
 
   run dock echo
   [ "$status" -eq 0 ]
-  [ "$(cat hostname)" = my-project-dock ]
+  [ "$(cat hostname)" = my-hostname ]
 }
 
-@test "returns the hostname defined by hostname option" {
+@test "returns the hostname defined by container_hostname option" {
   file .dock <<-EOF
 image alpine:latest
-hostname my-custom-name
-echo "\$(hostname)" > hostname
+container_hostname my-custom-name
+echo "\$(container_hostname)" > hostname
 EOF
 
   run dock echo
