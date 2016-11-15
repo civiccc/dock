@@ -1,6 +1,6 @@
 # Dock Change Log
 
-## master (unreleased)
+## 1.2.0 (2016-11-15)
 
 * Don't set container hostname by default
 * Rename `hostname` option to `container_hostname` so it doesn't conflict with
