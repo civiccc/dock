@@ -392,11 +392,11 @@ destroy_container() {
   fi
 }
 
-port-taken-on-localhost() {
+port_taken_on_localhost() {
   echo | nc -w 1 localhost $1 >/dev/null 2>&1
 }
 
-process-exposed-ports() {
+process_exposed_ports() {
   forwarded_ports=() # OS X: Ports forwarded from the local machine to the VM
   published_ports=() # Ports published by the container on the Docker host
 
@@ -414,7 +414,7 @@ process-exposed-ports() {
     1)
       local host_port="$(cut -d: -f1 <<< "$port_spec")"
 
-      if port-taken-on-localhost $host_port; then
+      if port_taken_on_localhost $host_port; then
         warn "Ignoring port specification $port_spec since another process has already bound to localhost:$host_port"
         warn "You're likely already running the service locally."
       else
@@ -709,7 +709,7 @@ if ! $dock_in_dock; then
   run_args+=("--env" "INSIDE_DOCK=1")
 fi
 
-process-exposed-ports
+process_exposed_ports
 if [ ${#published_ports[@]} -gt 0 ]; then
   for p in "${published_ports[@]}"; do
     run_args+=("--publish" "$p")
