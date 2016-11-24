@@ -1,6 +1,6 @@
 # Dock Change Log
 
-## master (unreleased)
+## 1.3.0 (2016-11-23)
 
 * Add `build_context` configuration option allowing the build context
   path/URL to be specified
