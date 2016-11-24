@@ -242,6 +242,7 @@ These configuration options can be set in your Dock configuration file.
 
 * [`attach_command`](#attach_command)
 * [`build_arg`](#build_arg)
+* [`build_context`](#build_context)
 * [`build_flags`](#build_flags)
 * [`container_hostname`](#container_hostname)
 * [`container_name`](#container_name)
@@ -289,6 +290,21 @@ as no building is done in such case.
 ```bash
 build_arg MY_ARG "some value"
 ```
+
+#### `build_context`
+
+Specify the path or URL to use for the build context of the `docker build`
+command that Dock will execute when building the Dockerfile.  Ignored if you
+have only specified an `image` rather than a `dockerfile`.
+
+```bash
+build_context path/in/repo
+
+build_context https://example.com/context.tar.gz
+```
+
+See the [`docker build`](https://docs.docker.com/engine/reference/commandline/build)
+documentation for details on how the build context and Dockerfile paths are handled.
 
 #### `build_flags`
 
@@ -373,7 +389,9 @@ want to change it to some other sequence.
 
 Specify path to the Dockerfile to build into an image used by the Dock
 container. If a relative path is given, this will be relative to the
-repository root directory.
+repository root directory (even if you have specified a custom
+[`build_context`](#build_context), the path is always relative to the root
+of the repository).
 
 Cannot specify `dockerfile` and `image` options in the same configuration.
 

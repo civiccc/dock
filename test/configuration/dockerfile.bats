@@ -36,3 +36,21 @@ EOF
   [ "$status" -eq 0 ]
   [[ "$output" =~ "Hello" ]]
 }
+
+@test "when dockerfile specified along with build_context it set relative to repo root, not build context" {
+  mkdir -p context
+
+  file context/Dockerfile <<-EOF
+FROM alpine:latest
+RUN echo Hello > /etc/hello-world
+EOF
+
+  file .dock <<-EOF
+  build_context context
+  dockerfile context/Dockerfile
+EOF
+
+  run dock echo /etc/hello-world
+  [ "$status" -eq 0 ]
+  [[ "$output" =~ "Hello" ]]
+}

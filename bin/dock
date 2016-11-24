@@ -153,6 +153,14 @@ build_arg() {
   fi
 }
 
+build_context() {
+  if [ -z "${1+x}" ]; then
+    echo "${build_context}"
+  else
+    build_context="${repo_root}/$1"
+  fi
+}
+
 build_flags() {
   if [ "${#@}" -gt 0 ]; then
     build_args+=("$@")
@@ -476,6 +484,7 @@ initialize_variables() {
   repo=$(basename "$repo_root")
   repo=${repo//[^a-zA-Z0-9.-]/-} # Ensure slug is a valid name for Docker
   build_args=("docker" "build")
+  build_context="${repo_root}"
   run_args=("docker" "run")
   dockerfile=""
   image=""
@@ -745,7 +754,7 @@ if [ -n "$dockerfile" ]; then
   if $pull; then
     build_args+=("--pull")
   fi
-  build_args+=("--file" "$dockerfile" "--tag" "$image" "$repo_root")
+  build_args+=("--file" "$dockerfile" "--tag" "$image" "$build_context")
   if quiet; then
     "${build_args[@]}" 2>&1 >/dev/null
   else

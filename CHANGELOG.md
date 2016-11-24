@@ -1,5 +1,10 @@
 # Dock Change Log
 
+## master (unreleased)
+
+* Add `build_context` configuration option allowing the build context
+  path/URL to be specified
+
 ## 1.2.0 (2016-11-15)
 
 * Don't set container hostname by default
