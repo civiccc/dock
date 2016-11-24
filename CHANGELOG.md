@@ -4,6 +4,9 @@
 
 * Add `build_context` configuration option allowing the build context
   path/URL to be specified
+* Add support for automatically destroying already-existing/running Dock
+  containers for a project by specifying the `DOCK_FORCE_DESTROY` environment
+  variable (useful in CI environments where containers can get left behind)
 
 ## 1.2.0 (2016-11-15)
 

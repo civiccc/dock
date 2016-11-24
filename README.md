@@ -9,6 +9,7 @@ environments inside [Docker](https://www.docker.com/) containers.
 * [Getting Started](#getting-started)
 * [Usage](#usage)
   * [Attach to an already-running container](#attach-to-an-already-running-container)
+  * [Destroy an already-running container](#destroy-an-already-running-container)
   * [Run a container in the background](#run-a-container-in-the-background)
   * [Automatically execute a script in a Dock container](#automatically-execute-a-script-in-a-dock-container)
   * [Expose services inside the container on your host](#expose-services-inside-the-container-on-your-host)
@@ -134,6 +135,17 @@ they are assigned different container names by default).
 
 You can however open multiple shells to the same container by attaching to an
 already-running Dock container by running `dock -a` in the project directory.
+
+### Destroy an already-running container
+
+If you run `dock` in a repository which already has an associated container
+running, you'll prompted to confirm if you would like to destroy the current
+container (if there's no interactive shell, Dock will halt with an error).
+
+You can bypass this prompt by setting the environment variable
+`DOCK_FORCE_DESTROY=1`. This is useful in CI environments where there is no
+interactive shell but you are sure you always want to destroy any lingering
+containers.
 
 ### Run a container in the background
 
