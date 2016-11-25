@@ -1,5 +1,9 @@
 # Dock Change Log
 
+## master (unreleased)
+
+* Fix `integer expression expected` warning on hosts running Bash 4 or newer
+
 ## 1.3.0 (2016-11-23)
 
 * Add `build_context` configuration option allowing the build context

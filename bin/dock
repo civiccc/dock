@@ -564,7 +564,7 @@ attach_to_container() {
 
 check_for_existing_container() {
   if container_exists; then
-    if [ "${DOCK_FORCE_DESTROY:-}" -eq 1 ]; then
+    if [ "${DOCK_FORCE_DESTROY:-0}" = 1 ]; then
       notice "Destroying container $container_name..."
       destroy_container
       notice "Container $container_name destroyed."
