@@ -1,6 +1,6 @@
 # Dock Change Log
 
-## master (unreleased)
+## 1.3.1 (2016-11-24)
 
 * Fix `integer expression expected` warning on hosts running Bash 4 or newer
 
