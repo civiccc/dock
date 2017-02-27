@@ -1,5 +1,16 @@
 # Dock Change Log
 
+## master (unreleased)
+
+* Add dock environment 'extension' option allowing users to build
+  environments consisting of multiple projects/services
+* Update container inspection and modification methods to operate
+  on either the project default dock container or a different
+  container targeted by the user (as a means of maintaining backwards
+  compatibility)
+* Refactor basic dock run args compilation logic into a
+  separate reusable method
+
 ## 1.3.1 (2016-11-24)
 
 * Fix `integer expression expected` warning on hosts running Bash 4 or newer
