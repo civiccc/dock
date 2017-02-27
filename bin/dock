@@ -11,6 +11,8 @@
 #
 # -d                    Detach and run container in the background
 #
+# -e                    Extend an existing Dock container with a new project
+#
 # -f                    Force creation of new container (destroying any
 #                       already-existing container).
 # -q                    Don't display any Dock-specific output (just output from
@@ -38,6 +40,7 @@ restore_stdout() {
 }
 
 default_conf_file=".dock"
+default_compose_file="docker-compose.yml"
 
 # We use \033 instead of \e since Macs don't support \e as of Mountain Lion
 red="\033[0;31m"
@@ -366,6 +369,15 @@ volume() {
   fi
 }
 
+label() {
+  if [ "${#@}" -ne 2 ]; then
+    error "Must provide exactly two arguments for label key, value pair"
+    return 1
+  else
+    labels+=( "$1=${2}" )
+  fi
+}
+
 workspace_path() {
   if [ -z "${1+x}" ]; then
     # No argument specified, so return the current name
@@ -381,22 +393,227 @@ workspace_path() {
 }
 
 container_running() {
-  [ "$(docker inspect --format '{{ .State.Status }}' $container_name 2>&1)" = "running" ]
+  target_container=$container_name
+  if [ -n "${1+x}" ]; then
+    target_container="$1"
+  fi
+
+  [ "$(docker inspect --format '{{ .State.Status }}' $target_container 2>&1)" = "running" ]
 }
 
 container_exists() {
-  docker inspect $container_name >/dev/null 2>&1
+  target_container=$container_name
+  if [ -n "${1+x}" ]; then
+    target_container="$1"
+  fi
+
+  docker inspect $target_container >/dev/null 2>&1
+}
+
+image_is_local() {
+  if [ -z "${1+x}" ]; then
+    error "Must provide image specification"
+    return 1
+  fi
+
+  if ! docker images --format '{{.Repository}}:{{.Tag}}' | grep $1 > /dev/null 2>&1; then
+    notice "Image $1 not found within local docker image repository."
+    return 1
+  fi
+
+  info "Image $1 found within local docker image repository"
+}
+
+pull_image() {
+  if [ -z "${1+x}" ]; then
+    error "Must provide image specification"
+    return 1
+  fi
+
+  local image=$1
+  notice "Ensuring we have the latest version of $image locally..."
+  pull_args=("docker" "pull" "$image")
+  if quiet; then
+    "${pull_args[@]}" 2>&1 >/dev/null
+  else
+    "${pull_args[@]}"
+  fi
+
+  return $?
+}
+
+source_script() {
+  local file=$1
+  if [ -e "$file" ]; then
+    if ! source "$file"; then
+      error "Problem sourcing $file"
+      return 1
+    fi
+  else
+    error "File '$file' does not exist!"
+    return 1
+  fi
+}
+
+resolve_docker_compose() {
+  local file=$1
+  if [ -e "$file" ]; then
+    local resolved_file="${file}.resolved"
+    if ! docker-compose config > "$resolved_file" 2>&1; then
+      return 1
+    fi
+  else
+    error "$file does NOT exist"
+  fi
+}
+
+extend_container() {
+  if [ -z "${1+x}" ]; then
+    error "Must provide Dock environment ID to extend"
+    return 1
+  fi
+
+  # Ensure project contains a valid docker-compose.yml
+  if [ ! -e "$default_compose_file" ]; then
+    error "$default_compose_file not found in project repo"
+    return 1
+  fi
+
+  if ! resolve_docker_compose $default_compose_file; then
+    return 1
+  fi
+
+  local id=$1
+  local build_image=true
+  info "Extending Dock: $id"
+  if ! image_is_local $id; then
+    if pull_image $id; then
+      info "Found $id, skipping creation..."
+      build_image=false
+    fi
+  else
+    build_image=false
+  fi
+
+  # set image and container names accordingly
+  image "$id"
+  container_name "$(convert_to_valid_container_name $id)"
+
+  # If not extending a new container, verify that the dock container exists
+  if ! $build_image && ! container_exists $container_name; then
+    error "Unable to find docker environment container $container_name!"
+    exit 1
+  fi
+
+  # set workspace directory to project repo root
+  workspace_path "$(pwd)"
+
+  # automatically detach from container to allow for build process to continue and
+  # saving of intermediate container state as image to occur
+  detach
+
+  # add Dock environment construction labels
+  label "dock.${project}" "$(cat $dock_file)"
+  label "compose.${project}" "$(cat $default_compose_file)"
+
+  # proceed to launch extended dock container...
+  # TODO: refactor below common setup (i.e. build of docker run args) to remove code
+  # duplication
+  #
+  # If we're already inside a Dock environment, just execute the command.
+  # This allows us to reuse scripts with dock in their shebang line in other
+  # Dock-ified scripts without invoking dock-within-dock (which is likely not what
+  # we want).
+  if [ -n "${INSIDE_DOCK+x}" ]; then
+    exec "${command_args[@]}"
+  fi
+
+  # Compile run args based on current configuration
+  compile_run_args
+
+  # If the targeted dock environment does not exist, create a new image
+  # based on the dock configuration of the current project
+  temp_container_name="temp"
+  if $build_image; then
+    if [ -n "$dockerfile" ]; then
+      notice "Building $dockerfile into image $image..."
+      if $pull; then
+        build_args+=("--pull")
+      fi
+      build_args+=("--file" "$dockerfile" "--tag" "$image" "$build_context")
+      if quiet; then
+        "${build_args[@]}" 2>&1 >/dev/null
+      else
+        "${build_args[@]}"
+      fi
+      notice "$dockerfile built into $image!"
+    else
+      error "Must specify a Dockerfile to build and run!"
+      info "(is there a $default_conf_file file in your current directory?)"
+      exit 1
+    fi
+  else
+      notice "Migrating volumes from $container_name"
+      # Rename container to $temp_container_name so that we can launch the replacement container with
+      # the exact same and still have access to the previous version of the container's
+      # volumes
+      docker rename $container_name $temp_container_name
+      run_args+=("--volumes-from" "$temp_container_name")
+  fi
+
+  run_args+=("$image")
+  if [ "${#command_args[@]}" -gt 0 ]; then
+    run_args+=("${command_args[@]}")
+  fi
+  notice "Starting container $container_name from image $image"
+
+  restore_stdout
+  "${run_args[@]}"
+
+  docker commit $container_name $image
+  notice "$container_name has successfully been committed as image -- $image!"
+
+  if container_exists $temp_container_name; then
+    info "Intermediary container, $temp_container_name, found. Deleting..."
+    docker stop $temp_container_name
+    docker rm $temp_container_name
+  fi
+
+  exit
+}
+
+convert_to_valid_container_name() {
+  # Container names are only allowed to contain characters from [a-zA-Z0-9_-]
+  # so ensure that the input does not contain chars like /,:
+  # This method isn't exhaustive and currently just handles its current use case
+  if [ -z "${1+x}" ]; then
+    error "Must provide microenvironment ID to extend"
+    return 1
+  fi
+
+  name=$1
+  # remove ':'s
+  name="${name//:/_}"
+  # remove '/'s
+  name="${name////-}"
+
+  echo $name
 }
 
 destroy_container() {
-  if container_running; then
-    docker stop $container_name >/dev/null || true
+  target_container=$container_name
+  if [ -n "${1+x}" ]; then
+    target_container="$1"
+  fi
+
+  if container_running $target_container; then
+    docker stop $target_container >/dev/null || true
   fi
   if container_running; then
-    docker kill $container_name >/dev/null || true
+    docker kill $target_container >/dev/null || true
   fi
   if container_exists; then
-    docker rm --force $container_name >/dev/null
+    docker rm --force $target_container >/dev/null
   fi
 }
 
@@ -498,6 +715,7 @@ initialize_variables() {
   required_env=()
   container_name="$repo-dock"
   volumes=("$(resolve_symlink $dock_bin):/usr/local/bin/dock")
+  labels=()
   exposed_ports=()
   workspace_dir="/workspace"
   force_tty=false
@@ -530,7 +748,7 @@ initialize_variables() {
   # (useful for defining default image/dockerfile).
   # Command line arguments will override these if present.
   if [ -e "$dock_file" ]; then
-    if ! source "$dock_file"; then
+    if ! source_script "$dock_file"; then
       error "Problem sourcing $dock_file"
       return 1
     fi
@@ -539,17 +757,20 @@ initialize_variables() {
     return 1
   fi
 
-  # Mount repository in the container
-  volumes+=("$repo_root:$workspace_dir:rw")
 }
 
 attach_to_container() {
-  if container_running; then
+  target_container=$container_name
+  if [ -n "${1+x}" ]; then
+    target_container="$1"
+  fi
+
+  if container_running $target_container; then
     exec_args=("docker" "exec" "--interactive" "--tty")
     if $privileged; then
       exec_args+=("--privileged")
     fi
-    exec_args+=("$container_name" "${attach_command_args[@]}")
+    exec_args+=("$target_container" "${attach_command_args[@]}")
 
     exec "${exec_args[@]}"
   elif container_exists; then
@@ -563,20 +784,25 @@ attach_to_container() {
 }
 
 check_for_existing_container() {
-  if container_exists; then
+  target_container=$container_name
+  if [ -n "${1+x}" ]; then
+    target_container="$1"
+  fi
+
+  if container_exists $target_container; then
     if [ "${DOCK_FORCE_DESTROY:-0}" = 1 ]; then
-      notice "Destroying container $container_name..."
-      destroy_container
-      notice "Container $container_name destroyed."
+      notice "Destroying container $target_container..."
+      destroy_container $target_container
+      notice "Container $target_container destroyed."
       return
     fi
 
-    if container_running; then
-      error "Container $container_name is already running."
+    if container_running $target_container; then
+      error "Container $target_container is already running."
       if interactive; then
         ask "Attach to the container? (y/n)" n answer
         if [ "${answer}" = "y" ]; then
-          attach_to_container
+          attach_to_container "target_container"
         else
           info "You answered '${answer}' instead of 'y'; not attaching."
         fi
@@ -585,13 +811,13 @@ check_for_existing_container() {
       fi
       return 1
     else
-      error "Container $container_name already exists but is stopped."
+      error "Container $target_container already exists but is stopped."
       if interactive; then
         ask "Destroy existing container and create new one? (y/n)" n answer
         if [ "${answer}" = "y" ]; then
-          notice "Destroying container $container_name..."
-          destroy_container
-          notice "Container $container_name destroyed."
+          notice "Destroying container $target_container..."
+          destroy_container $target_container
+          notice "Container $target_container destroyed."
           return
         else
           info "You answered '${answer}' instead of 'y'; not attaching."
@@ -601,6 +827,87 @@ check_for_existing_container() {
       fi
       return 1
     fi
+  fi
+}
+
+compile_run_args() {
+  if [ ${#optional_env[@]} -gt 0 ]; then
+    for var_name in "${optional_env[@]}"; do
+      if [ -n "${!var_name+x}" ]; then
+        env+=("${var_name}=${!var_name}")
+      fi
+    done
+  fi
+
+  if [ ${#required_env[@]} -gt 0 ]; then
+    for var_name in "${required_env[@]}"; do
+      if [ -z "${!var_name+x}" ]; then
+        error "Environment variable ${var_name} is required but not set!"
+        exit 1
+      else
+        env+=("${var_name}=${!var_name}")
+      fi
+    done
+  fi
+
+  run_args+=("--name" "$container_name")
+  run_args+=("--workdir" "$workspace_dir")
+  run_args+=("--detach-keys" "$detach_keys")
+
+  if [ -n "${container_hostname+x}" ]; then
+    run_args+=("--hostname" "$container_hostname")
+  fi
+
+  if [ -n "${entrypoint+x}" ]; then
+    run_args+=("--entrypoint" "$entrypoint")
+  fi
+
+  if [ ${#env[@]} -gt 0 ]; then
+    for e in "${env[@]}"; do
+      run_args+=("--env" "$e")
+    done
+  fi
+
+  if ! $dock_in_dock; then
+    run_args+=("--env" "INSIDE_DOCK=1")
+  fi
+
+  process_exposed_ports
+  if [ ${#published_ports[@]} -gt 0 ]; then
+    for p in "${published_ports[@]}"; do
+      run_args+=("--publish" "$p")
+    done
+  fi
+
+  # Mount repository in the container
+  volumes+=("$repo_root:$workspace_dir:rw")
+  if [ ${#volumes[@]} -gt 0 ]; then
+    for v in "${volumes[@]}"; do
+      run_args+=("--volume" "$v")
+    done
+  fi
+
+  if [ ${#labels[@]} -gt 0 ]; then
+    for l in "${labels[@]}"; do
+      run_args+=("--label" "$l")
+    done
+  fi
+
+  if $detach; then
+    run_args+=("--detach")
+  else
+    # Otherwise keep STDIN open and auto-remove the container on exit
+    run_args+=("--interactive" "--rm")
+  fi
+
+  # Default to enabling --tty flag if STDIN (fd 0) is a TTY
+  # `docker run` will fail if we specify this without a TTY being present
+  if $force_tty || interactive; then
+    run_args+=("--tty")
+  fi
+
+  if $privileged; then
+    run_args+=("--privileged")
   fi
 }
 
@@ -642,8 +949,7 @@ check_dependencies
 
 # Need to pass original arguments so argument processing works
 initialize_variables "$@"
-
-while getopts "ac:dfq" opt; do
+while getopts "ac:de:fq" opt; do
   case $opt in
     a)
       attach_to_container
@@ -653,6 +959,9 @@ while getopts "ac:dfq" opt; do
       ;;
     d)
       detach=true
+      ;;
+    e)
+      extend_container "$OPTARG"
       ;;
     f)
       destroy_container
@@ -684,79 +993,11 @@ fi
 
 check_for_existing_container
 
-if [ ${#optional_env[@]} -gt 0 ]; then
-  for var_name in "${optional_env[@]}"; do
-    if [ -n "${!var_name+x}" ]; then
-      env+=("${var_name}=${!var_name}")
-    fi
-  done
-fi
-
-if [ ${#required_env[@]} -gt 0 ]; then
-  for var_name in "${required_env[@]}"; do
-    if [ -z "${!var_name+x}" ]; then
-      error "Environment variable ${var_name} is required but not set!"
-      exit 1
-    else
-      env+=("${var_name}=${!var_name}")
-    fi
-  done
-fi
-
-run_args+=("--name" "$container_name")
-run_args+=("--workdir" "$workspace_dir")
-run_args+=("--detach-keys" "$detach_keys")
-
-if [ -n "${container_hostname+x}" ]; then
-  run_args+=("--hostname" "$container_hostname")
-fi
-
-if [ -n "${entrypoint+x}" ]; then
-  run_args+=("--entrypoint" "$entrypoint")
-fi
-
-if [ ${#env[@]} -gt 0 ]; then
-  for e in "${env[@]}"; do
-    run_args+=("--env" "$e")
-  done
-fi
-
-if ! $dock_in_dock; then
-  run_args+=("--env" "INSIDE_DOCK=1")
-fi
-
-process_exposed_ports
-if [ ${#published_ports[@]} -gt 0 ]; then
-  for p in "${published_ports[@]}"; do
-    run_args+=("--publish" "$p")
-  done
-fi
-
-if [ ${#volumes[@]} -gt 0 ]; then
-  for v in "${volumes[@]}"; do
-    run_args+=("--volume" "$v")
-  done
-fi
-
-if $detach; then
-  run_args+=("--detach")
-else
-  # Otherwise keep STDIN open and auto-remove the container on exit
-  run_args+=("--interactive" "--rm")
-fi
-
-# Default to enabling --tty flag if STDIN (fd 0) is a TTY
-# `docker run` will fail if we specify this without a TTY being present
-if $force_tty || interactive; then
-  run_args+=("--tty")
-fi
-
-if $privileged; then
-  run_args+=("--privileged")
-fi
+compile_run_args
 
 if [ -n "$dockerfile" ]; then
   image="$repo:dock"
+
   notice "Building $dockerfile into image $image..."
   if $pull; then
     build_args+=("--pull")
@@ -768,6 +1009,7 @@ if [ -n "$dockerfile" ]; then
     "${build_args[@]}"
   fi
   notice "$dockerfile built into $image!"
+
 elif [ -n "$image" ] && $pull; then
   notice "Ensuring we have the latest version of $image locally..."
   pull_args=("docker" "pull" "$image")

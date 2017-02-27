@@ -11,6 +11,7 @@ environments inside [Docker](https://www.docker.com/) containers.
   * [Attach to an already-running container](#attach-to-an-already-running-container)
   * [Destroy an already-running container](#destroy-an-already-running-container)
   * [Run a container in the background](#run-a-container-in-the-background)
+  * [Extend an existing container](#extend-a-container)
   * [Automatically execute a script in a Dock container](#automatically-execute-a-script-in-a-dock-container)
   * [Expose services inside the container on your host](#expose-services-inside-the-container-on-your-host)
 * [Configuration](#configuration)
@@ -118,6 +119,7 @@ Option                 | Description
 `-a`                   | Attach to an already-running Dock container
 `-c config-file`       | Path of Dock configuration file to use (default `.dock`)
 `-d`                   | Detach/daemonize (run resulting Dock container in the background)
+`-e environment-id`    | Extend an existing Dock container with a new project
 `-f`                   | Force creation of new container (destroying old one if it exists)
 `-h`                   | Display summary of command line options
 `-q`                   | Silence Dock-related output (so only output from command run in the container is shown)
@@ -154,6 +156,23 @@ shell session inside the container, you can start the container in detached
 mode.
 
 Run `dock -d` or specify `detach true` in your Dock configuration.
+
+### Extend an existing container
+
+You can run multiple projects within a single `Dock` container in very much the
+same way `Dock` runs a single project.
+
+If you run `dock` in a repository and specify a `Dock` environment identifier to
+extend, `dock` will add the project src and all associated environment configuration
+(e.g. volumes, exposed ports, environment variables) to the `Dock` container represented
+by the identifier. If the specified `Dock` environment identifier does not exist (locally
+or remote), `dock` will create and run a new `Dock` container based on the configuration of
+the project and supplied identifier.
+
+```bash
+dock -e [environment-identifier]
+...
+```
 
 ### Automatically execute a script in a Dock container
 
