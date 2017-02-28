@@ -1,6 +1,6 @@
 # Dock Change Log
 
-## master (unreleased)
+## 1.4.0 (2017-02-27)
 
 * Add dock environment 'extension' option allowing users to build
   environments consisting of multiple projects/services
