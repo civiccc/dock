@@ -11,7 +11,8 @@ environments inside [Docker](https://www.docker.com/) containers.
   * [Attach to an already-running container](#attach-to-an-already-running-container)
   * [Destroy an already-running container](#destroy-an-already-running-container)
   * [Run a container in the background](#run-a-container-in-the-background)
-  * [Extend an existing container](#extend-a-container)
+  * [Extend an existing container](#extend-an-existing-container)
+  * [Terraform an existing container](#terraform-an-existing-container)
   * [Automatically execute a script in a Dock container](#automatically-execute-a-script-in-a-dock-container)
   * [Expose services inside the container on your host](#expose-services-inside-the-container-on-your-host)
 * [Configuration](#configuration)
@@ -119,10 +120,11 @@ Option                 | Description
 `-a`                   | Attach to an already-running Dock container
 `-c config-file`       | Path of Dock configuration file to use (default `.dock`)
 `-d`                   | Detach/daemonize (run resulting Dock container in the background)
-`-e environment-id`    | Extend an existing Dock container with a new project
+`-e dock-id`           | Extend an existing Dock container (add new project configuration and services)
 `-f`                   | Force creation of new container (destroying old one if it exists)
 `-h`                   | Display summary of command line options
 `-q`                   | Silence Dock-related output (so only output from command run in the container is shown)
+`-t dock-id`           | Terraform an existing Dock container (fully compose and merge embedded projects)
 `-v`                   | Display version information
 `-V`                   | Display verbose version information (for bug reports)
 
@@ -162,16 +164,43 @@ Run `dock -d` or specify `detach true` in your Dock configuration.
 You can run multiple projects within a single `Dock` container in very much the
 same way `Dock` runs a single project.
 
-If you run `dock` in a repository and specify a `Dock` environment identifier to
-extend, `dock` will add the project src and all associated environment configuration
-(e.g. volumes, exposed ports, environment variables) to the `Dock` container represented
-by the identifier. If the specified `Dock` environment identifier does not exist (locally
-or remote), `dock` will create and run a new `Dock` container based on the configuration of
-the project and supplied identifier.
+If you run `dock` in a repository and specify a `Dock` container identifier (used
+to annotate and distinguish between `Dock` container environments) to extend, `dock`
+will add the project src and all associated environment configuration (e.g. volumes,
+exposed ports, environment variables) into the `Dock` container represented by the
+identifier.
+
+If the specified `Dock` container does not exist, `dock` will create and run a new
+`Dock` container based on the configuration of the current project.
 
 ```bash
-dock -e [environment-identifier]
+
+$ cd /<path-to-project>     # step 1
+$ dock -e <dock-id>         # step 2
 ...
+SUCCESS: Dock <dock-id> successfully created!
+$ cd /<path-to-new-project> # step 3
+$ dock -e <dock-id>         # step 4
+...
+SUCCESS: Dock <dock-id> successfully extended!
+```
+
+### Terraform an existing container
+
+Specifying a `-t` flag along with a `Dock` container identifier when running `Dock`
+will result in the full composition and merging of the embedded project components
+within the container. This option essentially stands up all services and associated
+components added to the target `Dock` container using the `extends` options while also
+handling the proper identification and deduplication of shared components.
+
+The result of the operation will be a container consistent with running `docker-compose up`
+on each docker-compose.yml file associated with all projects embedded within
+and obeying [Docker's official docker-compose extension support](https://docs.docker.com/compose/extends/).
+```bash
+
+$ dock -t <dock-id>       # step 1
+...
+SUCCESS: Dock <dock-id> successfully terraformed!
 ```
 
 ### Automatically execute a script in a Dock container

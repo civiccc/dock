@@ -1,8 +1,16 @@
 # Dock Change Log
 
+## 1.4.1 (2017-03-13)
+
+* Add 'transform' option allowing users to fully merge and compose an existing
+  extended Dock container
+* Download and install docker-compose tool within Dock Dockerfile
+* Replace Dock configuration label (i.e. compose/dock.<project>) values with the path
+  for each file within the container rather than its contents
+
 ## 1.4.0 (2017-02-27)
 
-* Add dock environment 'extension' option allowing users to build
+* Add 'extension' option allowing users to build
   environments consisting of multiple projects/services
 * Update container inspection and modification methods to operate
   on either the project default dock container or a different
