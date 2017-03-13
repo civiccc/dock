@@ -22,6 +22,10 @@ container_running() {
   [ "$(docker inspect --format={{.State.Status}} "$1")" = running ]
 }
 
+get_labels() {
+  echo $(docker inspect --format='{{json .Config.Labels}}' "$1")
+}
+
 file() {
   local file=$1
 

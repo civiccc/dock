@@ -13,6 +13,8 @@
 #
 # -e                    Extend an existing Dock container with a new project
 #
+# -t                    Terraform an extended Dock container
+#
 # -f                    Force creation of new container (destroying any
 #                       already-existing container).
 # -q                    Don't display any Dock-specific output (just output from
@@ -374,7 +376,7 @@ label() {
     error "Must provide exactly two arguments for label key, value pair"
     return 1
   else
-    labels+=( "$1=${2}" )
+    labels+=( "$1=$2" )
   fi
 }
 
@@ -455,66 +457,45 @@ source_script() {
   fi
 }
 
-resolve_docker_compose() {
+is_valid_docker_compose() {
   local file=$1
   if [ -e "$file" ]; then
-    local resolved_file="${file}.resolved"
-    if ! docker-compose config > "$resolved_file" 2>&1; then
+    if ! docker-compose config 2>&1>/dev/null; then
+      error "Invalid docker-compose schema detected!"
       return 1
     fi
   else
-    error "$file does NOT exist"
+    error "$file does NOT exist!"
+    return 1
   fi
 }
 
 extend_container() {
   if [ -z "${1+x}" ]; then
-    error "Must provide Dock environment ID to extend"
+    error "Must provide a Dock container ID to extend!"
     return 1
   fi
 
+  notice "Extending Dock: $1..."
   # Ensure project contains a valid docker-compose.yml
-  if [ ! -e "$default_compose_file" ]; then
-    error "$default_compose_file not found in project repo"
+  if ! is_valid_docker_compose $default_compose_file; then
     return 1
-  fi
-
-  if ! resolve_docker_compose $default_compose_file; then
-    return 1
-  fi
-
-  local id=$1
-  local build_image=true
-  info "Extending Dock: $id"
-  if ! image_is_local $id; then
-    if pull_image $id; then
-      info "Found $id, skipping creation..."
-      build_image=false
-    fi
-  else
-    build_image=false
   fi
 
   # set image and container names accordingly
-  image "$id"
-  container_name "$(convert_to_valid_container_name $id)"
-
-  # If not extending a new container, verify that the dock container exists
-  if ! $build_image && ! container_exists $container_name; then
-    error "Unable to find docker environment container $container_name!"
-    exit 1
-  fi
+  container_name "$(convert_to_valid_container_name $1)"
+  image "dock-image:$container_name"
 
   # set workspace directory to project repo root
   workspace_path "$(pwd)"
 
   # automatically detach from container to allow for build process to continue and
   # saving of intermediate container state as image to occur
-  detach
+  detach true
 
   # add Dock environment construction labels
-  label "dock.${project}" "$(cat $dock_file)"
-  label "compose.${project}" "$(cat $default_compose_file)"
+  label "dock.${project}" "$(pwd)/.dock"
+  label "compose.${project}" "$(pwd)/docker-compose.yml"
 
   # proceed to launch extended dock container...
   # TODO: refactor below common setup (i.e. build of docker run args) to remove code
@@ -534,9 +515,9 @@ extend_container() {
   # If the targeted dock environment does not exist, create a new image
   # based on the dock configuration of the current project
   temp_container_name="temp"
-  if $build_image; then
+  if ! container_exists $container_name; then
     if [ -n "$dockerfile" ]; then
-      notice "Building $dockerfile into image $image..."
+      notice "Dock container $container_name not found, extending $project into new Dock $container_name..."
       if $pull; then
         build_args+=("--pull")
       fi
@@ -550,36 +531,131 @@ extend_container() {
     else
       error "Must specify a Dockerfile to build and run!"
       info "(is there a $default_conf_file file in your current directory?)"
-      exit 1
+      return 1
     fi
   else
-      notice "Migrating volumes from $container_name"
-      # Rename container to $temp_container_name so that we can launch the replacement container with
-      # the exact same and still have access to the previous version of the container's
-      # volumes
-      docker rename $container_name $temp_container_name
-      run_args+=("--volumes-from" "$temp_container_name")
+    # Target container matches existing Dock container, reuse...
+    # Rename existing container to $temp_container_name so that we can launch the replacement container with
+    # the exact same name and still have access to the previous version of the container's
+    # volumes
+    docker rename $container_name $temp_container_name
+    run_args+=("--volumes-from" "$temp_container_name")
   fi
 
   run_args+=("$image")
   if [ "${#command_args[@]}" -gt 0 ]; then
     run_args+=("${command_args[@]}")
   fi
-  notice "Starting container $container_name from image $image"
 
   restore_stdout
   "${run_args[@]}"
-
-  docker commit $container_name $image
-  notice "$container_name has successfully been committed as image -- $image!"
-
-  if container_exists $temp_container_name; then
-    info "Intermediary container, $temp_container_name, found. Deleting..."
-    docker stop $temp_container_name
-    docker rm $temp_container_name
+  if [ $? -ne 0 ]; then
+    return 1
   fi
 
-  exit
+  docker commit $container_name $image 2>&1 >/dev/null
+
+  # Cleanup intermediary temporary container if necessary
+  if container_exists $temp_container_name; then
+    docker stop $temp_container_name 2>&1 >/dev/null || true
+    docker rm $temp_container_name 2>&1 >/dev/null || true
+  fi
+
+  success "$container_name has successfully been extended!"
+}
+
+get_labels() {
+  if [ -z "${1+x}" ]; then
+    error "Must provide docker object to inspect!"
+    return 1
+  fi
+
+  labels=$(docker inspect --format='{{json .Config.Labels}}' "$1")
+  echo "$labels"
+}
+
+get_label_keys() {
+  if [ -z "${1+x}" ]; then
+    error "Must provide docker object to inspect!"
+    return 1
+  fi
+
+  local keyword=""
+  if [ -n "${2+x}" ]; then
+    keyword="$2"
+  fi
+
+  keys=$(docker inspect --format='{{json .Config.Labels}}' "$1" | jq --arg k $keyword \
+    '. | keys[] | select(startswith($k))' | sed -e 's/^"//' -e 's/"$//')
+  echo "$keys"
+}
+
+get_label_value() {
+  if [ -z "${1+x}" ]; then
+    error "Must provide docker object to inspect!"
+    return 1
+  fi
+
+  if [ -z "${2+x}" ]; then
+    error "Must provide label key to target!"
+    return 1
+  fi
+
+  obj=$1
+  key=$2
+  value=$(docker inspect --format='{{json .Config.Labels}}' $obj | jq --arg k $key \
+    '.[$k]' | sed -e 's/^"//' -e 's/"$//')
+
+  # Remove string escapes applied by docker's label logic and return
+  echo -e "$(echo -e "$value" | sed -e 's/\\\"/"/g')"
+}
+
+terraform_container() {
+  if [ -z "${1+x}" ]; then
+    error "Must provide a Dock container ID to extend!"
+    return 1
+  fi
+
+  notice "Terraforming Dock: $container_name..."
+  local container_name="$(convert_to_valid_container_name $1)"
+  projects_to_compose=$(get_label_keys $container_name "compose.")
+
+  # Recreate temporary workspace for new terraform operation
+  tmp_workspace="/tmp/compose"
+  docker exec $container_name rm --recursive --force $tmp_workspace
+  docker exec $container_name mkdir $tmp_workspace
+
+  compose_args=("docker-compose")
+  # Resolve project docker-compose files and cache in temporary workspace
+  for project in ${projects_to_compose[@]}; do
+    compose_path=$(get_label_value $container_name $project)
+    local compose_dir=$(dirname $compose_path)
+    local output_file="${project}.yml"
+    docker exec $container_name bash -c "\
+      # change directory to project compose file location
+      cd $compose_dir;
+      # resolve project compose file
+      docker-compose config > ${tmp_workspace}/$output_file"
+    compose_args+=("--file" "$output_file")
+  done
+  compose_args+=("up" "-d")
+
+  # Purge all existing containers within Dock environment
+  info "Purging existing Dock environment..."
+  docker exec $container_name bash -c "\
+    docker stop $(docker ps -aq) >/dev/null || true;
+    docker rm $(docker ps -aq) >/dev/null || true"
+
+  # Compose environment from temporary workspace
+  info "Terraforming and recomposing Dock environment..."
+  compose_cmd="${compose_args[@]}"
+  docker exec $container_name bash -c "\
+    # change directory to temporary workspace
+    cd $tmp_workspace;
+    # execute environment composition/merge
+    $compose_cmd"
+
+  success "Dock environment successfully terraformed!"
 }
 
 convert_to_valid_container_name() {
@@ -597,6 +673,9 @@ convert_to_valid_container_name() {
   # remove '/'s
   name="${name////-}"
 
+  if [ "$name" != "$1" ]; then
+    notice "The provided container name, ${1}, is not in a valid format - converted to ${name}."
+  fi
   echo $name
 }
 
@@ -757,6 +836,8 @@ initialize_variables() {
     return 1
   fi
 
+  # set project to repo name if unset in dock config
+  project="${project:=$(basename $(pwd))}"
 }
 
 attach_to_container() {
@@ -949,7 +1030,7 @@ check_dependencies
 
 # Need to pass original arguments so argument processing works
 initialize_variables "$@"
-while getopts "ac:de:fq" opt; do
+while getopts "ac:de:fqt:" opt; do
   case $opt in
     a)
       attach_to_container
@@ -957,11 +1038,16 @@ while getopts "ac:de:fq" opt; do
     c)
       # Already processed earlier. Here to avoid parser warnings.
       ;;
+    t)
+      terraform_container "$OPTARG"
+      exit
+      ;;
     d)
       detach=true
       ;;
     e)
       extend_container "$OPTARG"
+      exit
       ;;
     f)
       destroy_container

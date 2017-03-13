@@ -16,6 +16,10 @@ RUN yum -y install \
 RUN curl -L https://get.docker.com/builds/Linux/x86_64/docker-1.12.3.tgz \
     | tar -xzf - -C /usr/bin --strip-components=1
 
+# Install docker-compose so we can run the docker-compose tool inside the Dock container
+RUN curl -L https://github.com/docker/compose/releases/download/1.11.2/run.sh > /usr/local/bin/docker-compose \
+    && chmod +x /usr/local/bin/docker-compose
+
 # Install Bats testing framework
 RUN mkdir -p /src \
     && git clone --depth=1 https://github.com/sstephenson/bats.git /src/bats \
