@@ -1,5 +1,11 @@
 # Dock Change Log
 
+## 1.4.2 (2017-03-22)
+
+* Hotfix removing docker-compose file verification during extension.
+  Technically, functionality should not have been affected with the
+  verification in place though it makes sense to remove it.
+
 ## 1.4.1 (2017-03-13)
 
 * Add 'transform' option allowing users to fully merge and compose an existing
