@@ -14,24 +14,6 @@ teardown() {
   cd "${original_dir}"
 }
 
-@test "extending a Dock container with no docker-compose file at project root" { 
-  run dock -e test
-  
-  [ "$status" -eq 1 ]
-  [[ "$output" =~ "does NOT exist!" ]]
-}
-
-@test "extending a Dock container with an invalid docker-compose schema" {
-  file docker-compose.yml <<-EOF
-version: 2 # version should be a string, not a numeral
-EOF
-
-  run dock -e test
-  
-  [ "$status" -eq 1 ]
-  [[ "$output" =~ "Invalid docker-compose schema detected!" ]]
-}
-
 @test "configuration labels are added to Dock container during extension" {
   file Dockerfile <<-EOF
 FROM alpine:latest

@@ -477,10 +477,6 @@ extend_container() {
   fi
 
   notice "Extending Dock: $1..."
-  # Ensure project contains a valid docker-compose.yml
-  if ! is_valid_docker_compose $default_compose_file; then
-    return 1
-  fi
 
   # set image and container names accordingly
   container_name "$(convert_to_valid_container_name $1)"
