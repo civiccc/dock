@@ -5,7 +5,7 @@ RUN yum -y install \
     # Docker daemon won't start without `iptables` installed
     iptables-services \
     # Used for a variety of simple tests for port forwarding/publishing
-    nmap-ncat \
+    nmap-ncat net-tools \
     # Allow `dock-user` to escalate privileges if necessary
     sudo \
     # Allow us to run using OverlayFS file system

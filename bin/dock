@@ -693,7 +693,12 @@ destroy_container() {
 }
 
 port_taken_on_localhost() {
-  echo | nc -w 1 localhost $1 >/dev/null 2>&1
+  if osx; then
+    # show -a(ll sockets) and -n(umeric addresses)
+    echo | netstat -a -n 2>/dev/null | grep $1 >/dev/null 2>&1
+  else
+    echo | netstat --numeric --listening 2>/dev/null | grep $1 >/dev/null 2>&1
+  fi
 }
 
 process_exposed_ports() {
