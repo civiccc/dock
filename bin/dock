@@ -480,7 +480,7 @@ extend_container() {
 
   # set image and container names accordingly
   container_name "$(convert_to_valid_container_name $1)"
-  image "dock-image:$container_name"
+  image "$container_name:dock"
 
   # set workspace directory to project repo root
   workspace_path "$(pwd)"
@@ -488,6 +488,10 @@ extend_container() {
   # automatically detach from container to allow for build process to continue and
   # saving of intermediate container state as image to occur
   detach true
+
+  # Silence default_commands specified by projects during extension due to unexpected
+  # behavior stemming from operating on an intermediary environment state
+  default_command sh
 
   # add Dock environment construction labels
   label "dock.${project}" "$(pwd)/.dock"
@@ -513,7 +517,7 @@ extend_container() {
   temp_container_name="temp"
   if ! container_exists $container_name; then
     if [ -n "$dockerfile" ]; then
-      notice "Dock container $container_name not found, extending $project into new Dock $container_name..."
+      info "Dock container $container_name not found, creating $container_name for ${project}..."
       if $pull; then
         build_args+=("--pull")
       fi
@@ -524,8 +528,8 @@ extend_container() {
         "${build_args[@]}"
       fi
       notice "$dockerfile built into $image!"
-    else
-      error "Must specify a Dockerfile to build and run!"
+    elif [ -z "$image" ]; then
+      error "Must specify either an image to run or a Dockerfile to build and run!"
       info "(is there a $default_conf_file file in your current directory?)"
       return 1
     fi
@@ -534,6 +538,7 @@ extend_container() {
     # Rename existing container to $temp_container_name so that we can launch the replacement container with
     # the exact same name and still have access to the previous version of the container's
     # volumes
+    info "Dock container $container_name found, extending for ${project}..."
     docker rename $container_name $temp_container_name
     run_args+=("--volumes-from" "$temp_container_name")
   fi

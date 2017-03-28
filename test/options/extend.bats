@@ -104,7 +104,7 @@ EOF
 
   [ "$status" -eq 0 ]
   # verify image for Dock env has been created
-  docker images --format '{{.Repository}}:{{.Tag}}'| grep dock-image:test
+  docker images --format '{{.Repository}}:{{.Tag}}'| grep test:dock
   # ensure Dock env container is left running
   container_running test
 }
