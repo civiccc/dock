@@ -37,6 +37,26 @@ EOF
   echo "$labels" | grep dock.my-project
 }
 
+@test "compose configuration label is not added to Dock container if compose file does not exist" {
+  file Dockerfile <<-EOF
+FROM alpine:latest
+EOF
+
+  file .dock <<-EOF
+dockerfile Dockerfile
+default_command sh
+EOF
+
+  run dock -e test
+
+  [ "$status" -eq 0 ]
+  labels="$(get_labels test)"
+  # ensure compose construction label for project is NOT set
+  [[ "${lines[1]}" =~ "Unable to locate a docker-compose.yml file" ]]
+  echo "$labels" | grep -v compose.my-project
+  echo "$labels" | grep dock.my-project
+}
+
 @test "workspace dir is set as repo root of project during extension" {
   file Dockerfile <<-EOF
 FROM alpine:latest

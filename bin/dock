@@ -498,7 +498,13 @@ extend_container() {
 
   # add Dock environment construction labels
   label "dock.${project}" "$(pwd)/.dock"
-  label "compose.${project}" "$(pwd)/docker-compose.yml"
+  # Projects do not necessarily need to supply a docker-compose file so only add a
+  # label if the file exists
+  if [ -e "$(pwd)/docker-compose.yml" ]; then
+    label "compose.${project}" "$(pwd)/${default_compose_file}"
+  else
+    info "Unable to locate a $default_compose_file file for ${project}."
+  fi
 
   # proceed to launch extended dock container...
   # TODO: refactor below common setup (i.e. build of docker run args) to remove code
