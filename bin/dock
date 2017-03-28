@@ -478,14 +478,17 @@ extend_container() {
 
   notice "Extending Dock: $1..."
 
-  # set image and container names accordingly
+  # Set image and container names accordingly
   container_name "$(convert_to_valid_container_name $1)"
-  image "$container_name:dock"
+  extended_image="$container_name:dock"
+  if [ -z "$image" ]; then
+    image "$extended_image"
+  fi
 
-  # set workspace directory to project repo root
+  # Set workspace directory to project repo root
   workspace_path "$(pwd)"
 
-  # automatically detach from container to allow for build process to continue and
+  # Automatically detach from container to allow for build process to continue and
   # saving of intermediate container state as image to occur
   detach true
 
@@ -539,6 +542,7 @@ extend_container() {
     # the exact same name and still have access to the previous version of the container's
     # volumes
     info "Dock container $container_name found, extending for ${project}..."
+    image "$extended_image"
     docker rename $container_name $temp_container_name
     run_args+=("--volumes-from" "$temp_container_name")
   fi
@@ -554,7 +558,7 @@ extend_container() {
     return 1
   fi
 
-  docker commit $container_name $image 2>&1 >/dev/null
+  docker commit $container_name "$extended_image" 2>&1 >/dev/null
 
   # Cleanup intermediary temporary container if necessary
   if container_exists $temp_container_name; then
