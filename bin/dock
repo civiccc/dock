@@ -266,6 +266,15 @@ image() {
   fi
 }
 
+startup_services() {
+  if [ -z "${1+x}" ]; then
+    error "Must provide list of services (e.g service mysql)!"
+    return 1
+  else
+    startup_services="$1"
+  fi
+}
+
 pull_latest() {
   if [ -z "${1+x}" ] || "$1"; then
     pull=true
@@ -506,6 +515,13 @@ extend_container() {
     info "Unable to locate a $default_compose_file file for ${project}."
   fi
 
+  # Record the list of services to startup for this project and
+  # append to startup services list for container environment
+  existing_services="$(get_label_value $container_name startup_services)"
+  s="${existing_services} ${startup_services:- }"
+  s="$(echo $s | xargs -n1 | sort -u | xargs)"
+  label "startup_services" "$s"
+
   # proceed to launch extended dock container...
   # TODO: refactor below common setup (i.e. build of docker run args) to remove code
   # duplication
@@ -649,7 +665,10 @@ terraform_container() {
       docker-compose config > ${tmp_workspace}/$output_file"
     compose_args+=("--file" "$output_file")
   done
-  compose_args+=("up" "-d")
+  # Only start services which have been defined as startup services by composed
+  # projects
+  local services=$(get_label_value "$container_name" "startup_services") 
+  compose_args+=("up" "-d" "$services")
 
   # Purge all existing containers within Dock environment
   info "Purging existing Dock environment..."

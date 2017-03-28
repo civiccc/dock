@@ -17,6 +17,7 @@ teardown() {
 @test "configuration labels are added to Dock container during extension" {
   file Dockerfile <<-EOF
 FROM alpine:latest
+RUN apk update && apk add jq && rm -rf /var/cache/apk/*
 EOF
 
   file .dock <<-EOF
@@ -40,6 +41,7 @@ EOF
 @test "compose configuration label is not added to Dock container if compose file does not exist" {
   file Dockerfile <<-EOF
 FROM alpine:latest
+RUN apk update && apk add jq && rm -rf /var/cache/apk/*
 EOF
 
   file .dock <<-EOF
@@ -60,6 +62,7 @@ EOF
 @test "workspace dir is set as repo root of project during extension" {
   file Dockerfile <<-EOF
 FROM alpine:latest
+RUN apk update && apk add jq && rm -rf /var/cache/apk/*
 EOF
 
   file .dock <<-EOF
@@ -81,6 +84,7 @@ EOF
 @test "extending a project overrides previous Dock configuration labels for project" {
   file Dockerfile <<-EOF
 FROM alpine:latest
+RUN apk update && apk add jq && rm -rf /var/cache/apk/*
 EOF
 
   file .dock <<-EOF
@@ -109,6 +113,7 @@ EOF
 @test "extending a non-existent Dock container successfully" {
   file Dockerfile <<-EOF
 FROM alpine:latest
+RUN apk update && apk add jq && rm -rf /var/cache/apk/*
 EOF
 
   file .dock <<-EOF
@@ -132,6 +137,7 @@ EOF
 @test "extending an existing Dock container successfully" {
   file Dockerfile <<-EOF
 FROM alpine:latest
+RUN apk update && apk add jq && rm -rf /var/cache/apk/*
 EOF
 
   echo "mytesting" > /tmp/myfile
@@ -163,4 +169,59 @@ EOF
   echo "$labels" | grep dock.my-project
   # verify project ports are published
   docker port test | grep 8888
+}
+
+@test "startup_services labels are set when specified by project configuration" {
+  file Dockerfile <<-EOF
+FROM alpine:latest
+RUN apk update && apk add jq && rm -rf /var/cache/apk/*
+EOF
+
+  file .dock <<-EOF
+dockerfile Dockerfile
+startup_services 'service backend'
+default_command sh
+EOF
+
+  file docker-compose.yml <<-EOF
+version: '2'
+EOF
+
+  run dock -e test
+
+  [ "$status" -eq 0 ]
+  # verify startup_services label has been applied
+  labels="$(get_labels test)"
+  [ "$(echo "$labels" | grep -c startup_services)" -eq 1 ]
+  echo "$labels" | grep service
+  echo "$labels" | grep backend
+}
+
+@test "duplicate startup_services label values are filtered during extension" {
+  file Dockerfile <<-EOF
+FROM alpine:latest
+RUN apk update && apk add jq && rm -rf /var/cache/apk/*
+EOF
+
+  file .dock <<-EOF
+dockerfile Dockerfile
+startup_services 'another_service backend another_backend'
+default_command sh
+EOF
+
+  file docker-compose.yml <<-EOF
+version: '2'
+EOF
+
+  docker run --name test -d --label startup_services='service backend' alpine:latest sh
+  run dock -e test
+
+  [ "$status" -eq 0 ]
+  # verify duplicated startup_services labels are filtered accordingly
+  labels="$(get_labels test)"
+  [ "$(echo "$labels" | grep -c startup_services)" -eq 1 ]
+  [ "$(echo "$labels" | grep -c service)" -eq 1 ]
+  [ "$(echo "$labels" | grep -c another_service)" -eq 1 ]
+  [ "$(echo "$labels" | grep -c backend)" -eq 1 ]
+  [ "$(echo "$labels" | grep -c another_backend)" -eq 1 ]
 }

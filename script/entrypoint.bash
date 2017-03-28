@@ -11,7 +11,7 @@ start_docker() {
     return
   fi
 
-  sudo dockerd >/dev/null 2>&1 &
+  sudo dockerd>/dev/null 2>&1 &
   dockerd_pid=$!
 
   local max_tries=5
