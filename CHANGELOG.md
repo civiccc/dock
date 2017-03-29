@@ -1,5 +1,17 @@
 # Dock Change Log
 
+## 1.4.3 (2017-03-29)
+
+* Change defaults for privileged and pull_latest flags from false to true
+* Add startup_services configuration option allowing projects to specify
+  which services and variants therein to launch during terraforming of an
+  extended container
+* Modify extension option to only record compose construction label if
+  docker-compose file exists in project repo
+* Add image check to extension option to allow base projects to specify
+  an image to utilize for Dock development container
+* Apply various refactorizations
+
 ## 1.4.2 (2017-03-22)
 
 * Hotfix removing docker-compose file verification during extension.
