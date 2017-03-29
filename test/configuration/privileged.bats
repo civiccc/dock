@@ -25,11 +25,11 @@ EOF
 
   run dock echo
   [ "$status" -eq 0 ]
-  [ ! -e is_privileged ]
-  [ -e is_not_privileged ]
+  [ -e is_privileged ]
+  [ ! -e is_not_privileged ]
 }
 
-@test "when privileged not specified container is not given privileges" {
+@test "when privileged not specified container is given privileges" {
   file .dock <<-EOF
 image alpine:latest
 detach true
@@ -39,7 +39,7 @@ EOF
   run docker inspect --format {{.HostConfig.Privileged}} my-project-dock
   docker stop my-project-dock || true
   [ "$status" -eq 0 ]
-  [ "$output" = false ]
+  [ "$output" = true ]
 }
 
 @test "when privileged set to false container is not given privileges" {
