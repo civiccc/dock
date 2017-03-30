@@ -119,6 +119,7 @@ EOF
   file .dock <<-EOF
 dockerfile Dockerfile
 default_command sh
+publish 7777:7777
 EOF
 
   file docker-compose.yml <<-EOF
@@ -132,6 +133,15 @@ EOF
   docker images --format '{{.Repository}}:{{.Tag}}'| grep test:dock
   # ensure Dock env container is left running
   container_running test
+  # verify extension project configuration labels are set accordingly
+  labels="$(get_labels test)"
+  echo "$labels" | grep compose.my-project
+  echo "$labels" | grep dock.my-project
+  # verify projects label is updated
+  echo "$labels" | grep projects
+  echo "$labels" | grep my-project
+  # verify project ports are published
+  docker port test 7777
 }
 
 @test "extending an existing Dock container successfully" {
@@ -154,9 +164,10 @@ EOF
 
   echo "atesting" > /tmp/afile
   docker run --name test -d --volume /tmp/afile:/aprojectrepo/afile --label compose.aproject=foo \
-    --label dock.aproject=bar alpine:latest sh
-  dock -e test
+    --label dock.aproject=bar --label projects=aproject alpine:latest sh
+  docker commit test test:dock
 
+  dock -e test
   run docker exec test cat /myprojectrepo/myfile
 
   [ "$status" -eq 0 ]
@@ -167,8 +178,12 @@ EOF
   labels="$(get_labels test)"
   echo "$labels" | grep compose.my-project
   echo "$labels" | grep dock.my-project
+  # verify projects label is updated
+  echo "$labels" | grep projects
+  echo "$labels" | grep my-project
+  echo "$labels" | grep aproject
   # verify project ports are published
-  docker port test | grep 8888
+  docker port test 8888
 }
 
 @test "startup_services labels are set when specified by project configuration" {

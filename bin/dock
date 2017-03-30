@@ -134,9 +134,8 @@ cat <<MSG
 
 ===================== INSTRUCTIONS ===========================
 
-Dock $container_name extension for $project has completed.
 If you have completed extending the container, you can compose
-and launch the services within by running: dock -t $container_name
+and launch the projects within by running: dock -t $container_name
 
 ==============================================================
 MSG
@@ -549,13 +548,19 @@ extend_container() {
   if [ -e "$(pwd)/docker-compose.yml" ]; then
     label "compose.${project}" "$(pwd)/${default_compose_file}"
   else
-    info "Unable to locate a $default_compose_file file for ${project}."
+    warn "Unable to locate a $default_compose_file file for ${project}."
   fi
+
+  # Update the container's project list
+  existing_projects="$(get_label_value $container_name projects)"
+  p_list="${existing_projects} $project"
+  p_list="$(echo $p_list | xargs -n1 | sort -u | xargs)"
+  label "projects" "$p_list"
 
   # Record the list of services to startup for this project and
   # append to startup services list for container environment
   existing_services="$(get_label_value $container_name startup_services)"
-  s="${existing_services} ${startup_services:- }"
+  s="${existing_services:-''} ${startup_services:-''}"
   s="$(echo $s | xargs -n1 | sort -u | xargs)"
   label "startup_services" "$s"
 
@@ -625,6 +630,7 @@ extend_container() {
   fi
 
   success "$container_name has successfully been extended with $project!"
+  notice "project list: $(get_label_value $container_name projects)"
   display_extension_completion_msg
 }
 
@@ -679,9 +685,9 @@ terraform_container() {
     error "Must provide a Dock container ID to extend!"
     return 1
   fi
+  local container_name="$(convert_to_valid_container_name $1)"
 
   notice "Terraforming Dock: $container_name..."
-  local container_name="$(convert_to_valid_container_name $1)"
   projects_to_compose=$(get_label_keys $container_name "compose.")
 
   # Recreate temporary workspace for new terraform operation
