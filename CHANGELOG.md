@@ -1,5 +1,12 @@
 # Dock Change Log
 
+## 1.4.4 (2017-04-10)
+
+* Set project repo root to current working directory rather than top level
+  git repository root to allow dock to run in git repo subdirs
+* Include list of projects currently a part of a dock container within dock
+  extension messaging
+
 ## 1.4.3 (2017-03-29)
 
 * Change defaults for privileged and pull_latest flags from false to true
