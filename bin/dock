@@ -854,7 +854,7 @@ initialize_variables() {
     return 1
   fi
 
-  repo_root=$(git rev-parse --show-toplevel)
+  repo_root=$(pwd)
   repo=$(basename "$repo_root")
   repo=${repo//[^a-zA-Z0-9.-]/-} # Ensure slug is a valid name for Docker
   build_args=("docker" "build")
