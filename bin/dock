@@ -539,7 +539,9 @@ extend_container() {
 
   # Silence default_commands specified by projects during extension due to unexpected
   # behavior stemming from operating on an intermediary environment state
-  default_command sh
+  # TODO: Repurpose default_command with something more constructive (e.g. setting up
+  # a virtual dev environment for the project involved in the extension).
+  default_command tail -f /dev/null
 
   # add Dock environment construction labels
   label "dock.${project}" "$(pwd)/.dock"
