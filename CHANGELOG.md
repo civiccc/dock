@@ -1,5 +1,10 @@
 # Dock Change Log
 
+## 1.4.5 (2017-04-11)
+
+* Modify default container entry command in order to prevent Dock containers
+  from exiting following project extensions
+
 ## 1.4.4 (2017-04-10)
 
 * Set project repo root to current working directory rather than top level
