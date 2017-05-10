@@ -319,6 +319,7 @@ These configuration options can be set in your Dock configuration file.
 * [`pull_latest`](#pull_latest)
 * [`required_env_var`](#required_env_var)
 * [`run_flags`](#run_flags)
+* [`startup_services`](#startup_services)
 * [`volume`](#volume)
 * [`workspace_path`](#workspace_path)
 
@@ -558,6 +559,14 @@ this is provided to allow you to specify additional flags.
 
 ```bash
 run_flags --memory 1g
+```
+
+#### `startup_services`
+
+Services to startup when terraforming a multi-project, integrated and self-contained Dock development environment, as defined within a project's docker-compose.yml.
+
+```bash
+startup_services "my_service mysql"
 ```
 
 #### `volume`

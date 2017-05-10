@@ -554,14 +554,14 @@ extend_container() {
   fi
 
   # Update the container's project list
-  existing_projects="$(get_label_value $container_name projects)"
+  existing_projects="$(get_label_value $container_name projects 2>/dev/null)"
   p_list="${existing_projects} $project"
   p_list="$(echo $p_list | xargs -n1 | sort -u | xargs)"
   label "projects" "$p_list"
 
   # Record the list of services to startup for this project and
   # append to startup services list for container environment
-  existing_services="$(get_label_value $container_name startup_services)"
+  existing_services="$(get_label_value $container_name startup_services 2>/dev/null)"
   s="${existing_services:-''} ${startup_services:-''}"
   s="$(echo $s | xargs -n1 | sort -u | xargs)"
   label "startup_services" "$s"
@@ -584,7 +584,7 @@ extend_container() {
   # If the targeted dock environment does not exist, create a new image
   # based on the dock configuration of the current project
   temp_container_name="temp"
-  if ! container_exists $container_name; then
+  if ! container_exists $container_name &>/dev/null; then
     if [ -n "$dockerfile" ]; then
       info "Dock container $container_name not found, creating $container_name with ${project}..."
       if $pull; then
@@ -624,11 +624,11 @@ extend_container() {
     return 1
   fi
 
-  docker commit $container_name "$extended_image" 2>&1 >/dev/null
+  docker commit $container_name "$extended_image" >/dev/null
   # Cleanup intermediary temporary container if necessary
-  if container_exists $temp_container_name; then
-    docker stop $temp_container_name 2>&1 >/dev/null || true
-    docker rm $temp_container_name 2>&1 >/dev/null || true
+  if container_exists $temp_container_name &>/dev/null; then
+    docker stop $temp_container_name &>/dev/null || true
+    docker rm $temp_container_name &>/dev/null || true
   fi
 
   success "$container_name has successfully been extended with $project!"
@@ -697,7 +697,7 @@ terraform_container() {
   docker exec $container_name rm --recursive --force $tmp_workspace
   docker exec $container_name mkdir $tmp_workspace
 
-  compose_args=("docker-compose")
+  compose_args=("COMPOSE_HTTP_TIMEOUT=600 docker-compose")
   # Resolve project docker-compose files and cache in temporary workspace
   for project in ${projects_to_compose[@]}; do
     compose_path=$(get_label_value $container_name $project)
@@ -713,7 +713,7 @@ terraform_container() {
   # Only start services which have been defined as startup services by composed
   # projects
   local services="$(get_label_value $container_name startup_services)"
-  compose_args+=("up" "-d" "$services")
+  compose_args+=("up" "--build" "-d" "$services")
 
   info "Terraforming and recomposing Dock environment..."
   # Purge all existing containers within Dock environment
