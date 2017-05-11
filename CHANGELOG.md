@@ -1,5 +1,11 @@
 # Dock Change Log
 
+## 1.4.6 (2017-05-11)
+
+* Update README with startup_services configuration allowing users to specify
+  which project services to start up when being integrated into a multi-project Dock
+  environment.
+
 ## 1.4.5 (2017-04-11)
 
 * Modify default container entry command in order to prevent Dock containers
