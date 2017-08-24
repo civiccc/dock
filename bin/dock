@@ -774,7 +774,7 @@ destroy_container() {
 port_taken_on_localhost() {
   if osx; then
     # show -a(ll sockets) and -n(umeric addresses)
-    echo | netstat -a -n 2>/dev/null | grep $1 >/dev/null 2>&1
+    echo | lsof -n -i :$1 2>/dev/null | grep -i LISTEN >/dev/null 2>&1
   else
     echo | netstat --numeric --listening 2>/dev/null | grep $1 >/dev/null 2>&1
   fi

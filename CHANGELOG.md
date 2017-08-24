@@ -1,5 +1,9 @@
 # Dock Change Log
 
+## master (unreleased)
+
+* Fix port_taken_on_localhost method for OSX machines
+
 ## 1.4.6 (2017-05-11)
 
 * Update README with startup_services configuration allowing users to specify
