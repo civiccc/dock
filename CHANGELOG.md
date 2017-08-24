@@ -1,6 +1,6 @@
 # Dock Change Log
 
-## master (unreleased)
+## 1.4.7 (2017-08-24)
 
 * Fix port_taken_on_localhost method for OSX machines
 
