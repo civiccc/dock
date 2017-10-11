@@ -578,6 +578,10 @@ extend_container() {
     exec "${command_args[@]}"
   fi
 
+  # Adding workspace directory as an enviroment variable. Since extending actually mounts the
+  # host file system path it needs to be set explicitly and not be set as the default /workdir
+  workspace_dir=$PWD
+
   # Compile run args based on current configuration
   compile_run_args
 
@@ -1032,6 +1036,8 @@ compile_run_args() {
   if ! $dock_in_dock; then
     run_args+=("--env" "INSIDE_DOCK=1")
   fi
+
+  run_args+=("--env" "WORKSPACE_DIR=${workspace_dir}")
 
   process_exposed_ports
   if [ ${#published_ports[@]} -gt 0 ]; then
