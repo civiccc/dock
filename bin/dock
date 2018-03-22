@@ -967,7 +967,7 @@ check_for_existing_container() {
       if interactive; then
         ask "Attach to the container? (y/n)" n answer
         if [ "${answer}" = "y" ]; then
-          attach_to_container "target_container"
+          attach_to_container "$target_container"
         else
           info "You answered '${answer}' instead of 'y'; not attaching."
         fi
@@ -1153,6 +1153,7 @@ if [ $# -ge $OPTIND ]; then
   # Set command to remaining unparsed arguments
   # (overrides anything that was defined in $dock_file)
   command_args=("${@:$OPTIND}")
+  attach_command "${@:$OPTIND}"
 fi
 
 # If we're already inside a Dock environment, just execute the command.
