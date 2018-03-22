@@ -1,8 +1,9 @@
 # Dock Change Log
 
-## master (unreleased)
+## 1.4.8 (2018-03-22)
 
-* Add WORKSPACE_DIR as environemnt variable
+* Add WORKSPACE_DIR as environment variable
+* Fix attachment flow when running `dock` with active project container
 
 ## 1.4.7 (2017-08-24)
 
