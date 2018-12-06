@@ -714,10 +714,22 @@ terraform_container() {
       docker-compose config > ${tmp_workspace}/$output_file"
     compose_args+=("--file" "$output_file")
   done
+
+  # Download all images included within compose service definitions in parallel
+  pull_args=("${compose_args[@]}")
+  pull_args+=("pull" "--parallel")
+
+  pull_cmd="${pull_args[@]}"
+  docker exec $container_name bash -c "\
+    # change directory to temporary workspace
+    cd $tmp_workspace;
+    # pull compose service images
+    $pull_cmd"
+
   # Only start services which have been defined as startup services by composed
   # projects
   local services="$(get_label_value $container_name startup_services)"
-  compose_args+=("up" "--build" "-d" "$services")
+  compose_args+=("up" "-d" "$services")
 
   info "Terraforming and recomposing Dock environment..."
   # Purge all existing containers within Dock environment
